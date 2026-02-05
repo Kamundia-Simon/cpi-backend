@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Eye } from "lucide-react";
 import { ROUTES } from "../../routes/routes";
 
 interface Project {
@@ -65,7 +64,6 @@ export const PMProjectsTable = ({
                 {renderSortIcon("startMonth")}
               </button>
             </th>
-            <th className="text-center p-4 font-medium text-gray-900">View</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -88,15 +86,6 @@ export const PMProjectsTable = ({
               </td>
               <td className="p-4 text-sm text-gray-700">
                 {project.startMonth}
-              </td>
-              <td className="p-4 text-center">
-                <Link
-                  to={ROUTES.SURVEY_DETAIL(project.surveyName)}
-                  className="p-2 text-gray-400 hover:text-blue-600 transition-colors inline-block"
-                  title={`View ${project.surveyName}`}
-                >
-                  <Eye size={16} />
-                </Link>
               </td>
             </tr>
           ))}
