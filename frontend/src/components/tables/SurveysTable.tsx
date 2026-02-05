@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { ChevronUp, ChevronDown } from "lucide-react";
 import { ROUTES } from "../../routes/routes";
 
 interface Survey {
@@ -22,8 +21,6 @@ interface SurveysTableProps {
 
 export const SurveysTable = ({
   surveys,
-  sortBy,
-  sortOrder,
   onSort,
   renderSortIcon,
 }: SurveysTableProps) => {

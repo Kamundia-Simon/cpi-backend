@@ -21,8 +21,6 @@ interface PMProjectsTableProps {
 
 export const PMProjectsTable = ({
   projects,
-  sortBy,
-  sortOrder,
   onSort,
   renderSortIcon,
 }: PMProjectsTableProps) => {

@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import SummaryTile from "../components/tiles/SummaryTile";
 import PMTile from "../components/tiles/PMTile";
 import { SurveysTable } from "../components/tables/SurveysTable";
-import { ROUTES } from "../routes/routes";
 import {
   PoundSterling,
   Calculator,
