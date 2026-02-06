@@ -6,7 +6,7 @@ import {
   UserButton,
 } from "@clerk/clerk-react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import { ROUTES } from "./routes/routes";
+import { ROUTES } from "./constants/routes";
 import Dashboard from "./pages/dashboard";
 import PMDetail from "./pages/PMDetails";
 import SurveyDetail from "./pages/SurveyDetails";

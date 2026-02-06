@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { User } from "lucide-react";
 import type { PMId } from "../../types";
-import { ROUTES } from "../../routes/routes";
+import { ROUTES } from "../../constants/routes";
 
 interface PMTileProps {
   id: PMId;

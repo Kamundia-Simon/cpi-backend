@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ROUTES } from "../../routes/routes";
+import { ROUTES } from "../../constants/routes";
 
 interface Survey {
   surveyName: string;

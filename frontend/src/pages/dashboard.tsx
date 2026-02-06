@@ -31,6 +31,16 @@ const Dashboard = () => {
   const [sortBy, setSortBy] = useState<SortColumn | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [pmFilter, setPmFilter] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [monthFilter, setMonthFilter] = useState<string>("All");
+
+  const uniqueMonths = useMemo(
+    () => [
+      "All",
+      ...Array.from(new Set(allSurveys.map((s) => s.startMonth))).sort(),
+    ],
+    [],
+  );
 
   // Toggle sort direction or set new column
   const handleSort = (column: SortColumn) => {
@@ -63,6 +73,18 @@ const Dashboard = () => {
       result = result.filter((s) => s.pm === pmFilter);
     }
 
+    // Search filter
+    if (searchQuery.trim()) {
+      result = result.filter((s) =>
+        s.surveyName.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+    }
+
+    // Month filter
+    if (monthFilter !== "All") {
+      result = result.filter((s) => s.startMonth === monthFilter);
+    }
+
     // Sort
     if (sortBy) {
       result.sort((a, b) => {
@@ -88,7 +110,7 @@ const Dashboard = () => {
     }
 
     return result;
-  }, [sortBy, sortOrder, pmFilter]);
+  }, [sortBy, sortOrder, pmFilter, searchQuery, monthFilter]);
 
   return (
     <div className="p-6">
@@ -137,21 +159,69 @@ const Dashboard = () => {
       </div>
 
       {/* All Surveys Table*/}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">All Surveys</h2>
-        {/* PM Filter*/}
-        <select
-          value={pmFilter}
-          onChange={(e) => setPmFilter(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="All">All PMs</option>
-          {PMs.map((pm) => (
-            <option key={pm.id} value={pm.name}>
-              {pm.name}
-            </option>
-          ))}
-        </select>
+      <h2 className="text-lg font-semibold mb-4">All Surveys</h2>
+      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+        <div className="flex items-end gap-4">
+          {/* Search Input */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Survey Name
+            </label>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {/* Month Filter */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Month
+            </label>
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {uniqueMonths.map((month) => (
+                <option key={month} value={month}>
+                  {month === "All" ? "Start Month" : month}
+                </option>
+              ))}
+            </select>
+          </div>
+          {/* PM Filter */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Project Manager
+            </label>
+            <select
+              value={pmFilter}
+              onChange={(e) => setPmFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="All">Filter by Project Manager</option>
+              {PMs.map((pm) => (
+                <option key={pm.id} value={pm.name}>
+                  {pm.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {/* Clear Filters Button */}
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              setMonthFilter("All");
+              setPmFilter("All");
+            }}
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
+          >
+            Clear Filters
+          </button>
+        </div>
       </div>
       <SurveysTable
         surveys={filteredAndSorted}

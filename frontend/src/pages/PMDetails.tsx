@@ -37,9 +37,20 @@ const PMDetail = () => {
   };
   const projects = pmProjects[pmIdNum] ?? [];
 
-  // Sort state
+  // Sort and filter state
   const [sortBy, setSortBy] = useState<SortColumn | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [monthFilter, setMonthFilter] = useState<string>("All");
+
+  // Get unique months for filters
+  const uniqueMonths = useMemo(
+    () => [
+      "Filter by month",
+      ...Array.from(new Set(projects.map((p) => p.startMonth))).sort(),
+    ],
+    [projects],
+  );
 
   // Toggle sort direction or set new column
   const handleSort = (column: SortColumn) => {
@@ -65,9 +76,24 @@ const PMDetail = () => {
 
   // Sort projects
   const sorted = useMemo(() => {
-    if (!sortBy) return projects;
+    let result = [...projects];
 
-    return [...projects].sort((a, b) => {
+    // Search filter
+    if (searchQuery.trim()) {
+      result = result.filter((p) =>
+        p.surveyName.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+    }
+
+    // Month filter
+    if (monthFilter !== "All") {
+      result = result.filter((p) => p.startMonth === monthFilter);
+    }
+
+    // Sort
+    if (!sortBy) return result;
+
+    return result.sort((a, b) => {
       let cmp = 0;
       switch (sortBy) {
         case "surveyName":
@@ -87,7 +113,7 @@ const PMDetail = () => {
       }
       return sortOrder === "asc" ? cmp : -cmp;
     });
-  }, [projects, sortBy, sortOrder]);
+  }, [projects, sortBy, sortOrder, searchQuery, monthFilter]);
 
   return (
     <div className="p-6">
@@ -122,6 +148,50 @@ const PMDetail = () => {
       </div>
 
       <h2 className="text-lg font-semibold mb-4">Surveys</h2>
+      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+        <div className="flex items-end gap-4">
+          {/* Search Input */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Survey Name
+            </label>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {/* Month Filter */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Month
+            </label>
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {uniqueMonths.map((month) => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
+              ))}
+            </select>
+          </div>
+          {/* Clear Filters Button */}
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              setMonthFilter("All");
+            }}
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
       <PMProjectsTable
         projects={sorted}
         sortBy={sortBy}
