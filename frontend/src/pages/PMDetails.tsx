@@ -12,13 +12,7 @@ import {
 } from "lucide-react";
 import SummaryTile from "../components/tiles/SummaryTile";
 import type { PMId } from "../types";
-import {
-  pmNames,
-  pmSummary,
-  pmProjects,
-  parsePounds,
-  parseMonth,
-} from "../data/mockData";
+import { pmNames, pmProjects, parsePounds, parseMonth } from "../data/mockData";
 
 // Sortable column keys for the PM table
 type SortColumn = "surveyName" | "totalPaid" | "totalCompletes" | "startMonth";
@@ -28,13 +22,6 @@ const PMDetail = () => {
   const { pmId } = useParams<{ pmId: string }>();
   const pmIdNum = Number(pmId) as PMId;
   const pmName = pmNames[pmIdNum] ?? "Unknown";
-
-  // Hardcoded placeholder
-  const summary = pmSummary[pmIdNum] ?? {
-    totalAmount: "£0.00",
-    avgPerProject: "£0.00",
-    totalProjects: "0",
-  };
   const projects = pmProjects[pmIdNum] ?? [];
 
   // Sort and filter state
@@ -115,6 +102,22 @@ const PMDetail = () => {
     });
   }, [projects, sortBy, sortOrder, searchQuery, monthFilter]);
 
+  // Dynamic summary calcs based on filters
+  const summaryMetrics = useMemo(() => {
+    const totalPaid = sorted.reduce(
+      (sum, p) => sum + parsePounds(p.totalPaid),
+      0,
+    );
+    const totalProjects = sorted.length;
+    const avgPerProject = totalProjects > 0 ? totalPaid / totalProjects : 0;
+
+    return {
+      totalAmount: `£${totalPaid.toFixed(2)}`,
+      avgPerProject: `£${avgPerProject.toFixed(2)}`,
+      totalProjects: totalProjects.toString(),
+    };
+  }, [sorted]);
+
   return (
     <div className="p-6">
       <div className="flex items-center gap-4 mb-6">
@@ -132,17 +135,17 @@ const PMDetail = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <SummaryTile
           title="Total Amount"
-          value={summary.totalAmount}
+          value={summaryMetrics.totalAmount}
           icon={PoundSterling}
         />
         <SummaryTile
           title="Average per Project"
-          value={summary.avgPerProject}
+          value={summaryMetrics.avgPerProject}
           icon={Calculator}
         />
         <SummaryTile
           title="Total Projects"
-          value={summary.totalProjects}
+          value={summaryMetrics.totalProjects}
           icon={FolderKanban}
         />
       </div>

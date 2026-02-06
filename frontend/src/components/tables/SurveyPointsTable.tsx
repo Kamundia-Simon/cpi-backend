@@ -1,43 +1,98 @@
+import type { ReactNode } from "react";
+
 interface SurveyPoint {
   pid: string;
-  cpi: string;
+  cpi: number;
   supplier: number;
   stime: string;
 }
 
 interface SurveyPointsTableProps {
   points: SurveyPoint[];
+  sortBy?: "cpi" | "supplier" | "stime" | null;
+  sortOrder?: "asc" | "desc";
+  onSort?: (column: "cpi" | "supplier" | "stime") => void;
+  renderSortIcon?: (column: "cpi" | "supplier" | "stime") => ReactNode;
 }
 
-export const SurveyPointsTable = ({ points }: SurveyPointsTableProps) => {
+export const SurveyPointsTable = ({
+  points,
+  onSort,
+  renderSortIcon,
+}: SurveyPointsTableProps) => {
+  const formatCPI = (cpi: number) => `£${(cpi / 100).toFixed(2)}`;
+  const formatDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("en-GB", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-gray-50 border-b border-gray-200">
+      <table className="w-full border-collapse text-sm">
+        <thead className="bg-gray-100 sticky top-0">
           <tr>
-            <th className="text-left p-4 font-medium text-gray-900">PID</th>
-            <th className="text-left p-4 font-medium text-gray-900">CPI</th>
-            <th className="text-left p-4 font-medium text-gray-900">
-              Supplier
+            <th className="p-3 text-left font-semibold text-gray-700">PID</th>
+            <th
+              className="p-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200"
+              onClick={() => onSort?.("cpi")}
+            >
+              <div className="flex items-center gap-2">
+                CPI
+                {renderSortIcon?.("cpi")}
+              </div>
             </th>
-            <th className="text-left p-4 font-medium text-gray-900">
-              Timestamp
+            <th
+              className="p-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200"
+              onClick={() => onSort?.("supplier")}
+            >
+              <div className="flex items-center gap-2">
+                Supplier
+                {renderSortIcon?.("supplier")}
+              </div>
+            </th>
+            <th
+              className="p-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200"
+              onClick={() => onSort?.("stime")}
+            >
+              <div className="flex items-center gap-2">
+                Timestamp
+                {renderSortIcon?.("stime")}
+              </div>
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
-          {points.map((point) => (
-            <tr key={point.pid} className="hover:bg-gray-50 transition-colors">
-              <td className="p-4 text-sm font-medium text-gray-900">
-                {point.pid}
+        <tbody>
+          {points.length === 0 ? (
+            <tr>
+              <td colSpan={4} className="p-4 text-center text-gray-500">
+                No interviews found matching the selected filters.
               </td>
-              <td className="p-4 text-sm text-gray-700">{point.cpi}</td>
-              <td className="p-4 text-sm text-gray-700">
-                Supplier {point.supplier}
-              </td>
-              <td className="p-4 text-sm text-gray-700">{point.stime}</td>
             </tr>
-          ))}
+          ) : (
+            points.map((point, index) => (
+              <tr
+                key={`${point.pid}-${point.stime}-${index}`}
+                className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <td className="p-3 text-gray-900">{point.pid}</td>
+                <td className="p-3 text-gray-900">{formatCPI(point.cpi)}</td>
+                <td className="p-3 text-gray-900">Supplier {point.supplier}</td>
+                <td className="p-3 text-gray-700 text-xs">
+                  {formatDate(point.stime)}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

@@ -23,10 +23,6 @@ import {
 type SortColumn = "surveyName" | "totalPaid" | "totalCompletes" | "startMonth";
 
 const Dashboard = () => {
-  const totalAmount = "£132.10";
-  const avgPerProject = "£13.21";
-  const totalProjects = "10";
-
   // Sort and filter state
   const [sortBy, setSortBy] = useState<SortColumn | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -112,6 +108,22 @@ const Dashboard = () => {
     return result;
   }, [sortBy, sortOrder, pmFilter, searchQuery, monthFilter]);
 
+  //Dynamic summarry metrics calcs
+  const summaryMetrics = useMemo(() => {
+    const totalPaid = filteredAndSorted.reduce(
+      (sum, s) => sum + parsePounds(s.totalPaid),
+      0,
+    );
+    const totalProjects = filteredAndSorted.length;
+    const avgPerProject = totalProjects > 0 ? totalPaid / totalProjects : 0;
+
+    return {
+      totalAmount: `£${totalPaid.toFixed(2)}`,
+      avgPerProject: `£${avgPerProject.toFixed(2)}`,
+      totalProjects: totalProjects.toString(),
+    };
+  }, [filteredAndSorted]);
+
   return (
     <div className="p-6">
       <div className="flex items-center gap-4 mb-6">
@@ -129,17 +141,17 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <SummaryTile
           title="Total Amount"
-          value={totalAmount}
+          value={summaryMetrics.totalAmount}
           icon={PoundSterling}
         />
         <SummaryTile
           title="Average per Project"
-          value={avgPerProject}
+          value={summaryMetrics.avgPerProject}
           icon={Calculator}
         />
         <SummaryTile
           title="Total Projects"
-          value={totalProjects}
+          value={summaryMetrics.totalProjects}
           icon={FolderKanban}
         />
       </div>

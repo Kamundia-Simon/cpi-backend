@@ -194,30 +194,30 @@ export const pmProjects: Record<
 // Survey Point Records
 export const surveyPoints: Record<
   string,
-  { pid: string; cpi: string; supplier: number; stime: string }[]
+  { pid: string; cpi: number; supplier: number; stime: string }[]
 > = {
   RDR000001: [
     {
       pid: "akia_7x9k2m",
-      cpi: "£2.50",
+      cpi: 250,
       supplier: 1,
       stime: "15 Jan 2024 09:00",
     },
     {
       pid: "akia_3p8n1q",
-      cpi: "£2.75",
+      cpi: 275,
       supplier: 2,
       stime: "15 Jan 2024 10:30",
     },
     {
       pid: "akia_9m2k5r",
-      cpi: "£2.50",
+      cpi: 250,
       supplier: 1,
       stime: "16 Jan 2024 08:15",
     },
     {
       pid: "akia_1t6w8v",
-      cpi: "£2.60",
+      cpi: 260,
       supplier: 3,
       stime: "17 Jan 2024 11:00",
     },
@@ -225,19 +225,19 @@ export const surveyPoints: Record<
   RDR000002: [
     {
       pid: "akia_4h2j9x",
-      cpi: "£3.00",
+      cpi: 300,
       supplier: 2,
       stime: "10 Feb 2024 09:00",
     },
     {
       pid: "akia_8c5f3y",
-      cpi: "£3.20",
+      cpi: 320,
       supplier: 1,
       stime: "11 Feb 2024 14:20",
     },
     {
       pid: "akia_2b7g1z",
-      cpi: "£2.90",
+      cpi: 290,
       supplier: 3,
       stime: "12 Feb 2024 10:00",
     },
@@ -245,19 +245,19 @@ export const surveyPoints: Record<
   RDR000003: [
     {
       pid: "akia_6d4e2a",
-      cpi: "£1.80",
+      cpi: 180,
       supplier: 4,
       stime: "05 Mar 2024 08:00",
     },
     {
       pid: "akia_0r9s5b",
-      cpi: "£1.95",
+      cpi: 195,
       supplier: 1,
       stime: "06 Mar 2024 09:30",
     },
     {
       pid: "akia_5u1v8c",
-      cpi: "£1.85",
+      cpi: 185,
       supplier: 2,
       stime: "07 Mar 2024 11:15",
     },
@@ -265,31 +265,31 @@ export const surveyPoints: Record<
   RDR000004: [
     {
       pid: "akia_3w7x2d",
-      cpi: "£4.00",
+      cpi: 400,
       supplier: 3,
       stime: "22 Jan 2024 11:00",
     },
     {
       pid: "akia_9y4z6e",
-      cpi: "£4.25",
+      cpi: 425,
       supplier: 2,
       stime: "23 Jan 2024 14:20",
     },
     {
       pid: "akia_1a8b3f",
-      cpi: "£3.80",
+      cpi: 380,
       supplier: 1,
       stime: "24 Jan 2024 09:45",
     },
     {
       pid: "akia_7c2d9g",
-      cpi: "£4.10",
+      cpi: 410,
       supplier: 4,
       stime: "25 Jan 2024 16:00",
     },
     {
       pid: "akia_4e6f1h",
-      cpi: "£3.95",
+      cpi: 395,
       supplier: 3,
       stime: "26 Jan 2024 10:30",
     },
@@ -297,19 +297,19 @@ export const surveyPoints: Record<
   RDR000005: [
     {
       pid: "akia_8g3h5i",
-      cpi: "£2.20",
+      cpi: 220,
       supplier: 1,
       stime: "28 Feb 2024 09:00",
     },
     {
       pid: "akia_2i7j0k",
-      cpi: "£2.35",
+      cpi: 235,
       supplier: 2,
       stime: "01 Mar 2024 13:00",
     },
     {
       pid: "akia_6k1l4m",
-      cpi: "£2.10",
+      cpi: 210,
       supplier: 3,
       stime: "02 Mar 2024 15:30",
     },
@@ -317,25 +317,25 @@ export const surveyPoints: Record<
   RDR000006: [
     {
       pid: "akia_0m5n8o",
-      cpi: "£3.50",
+      cpi: 350,
       supplier: 4,
       stime: "10 Apr 2024 08:00",
     },
     {
       pid: "akia_4o9p2q",
-      cpi: "£3.65",
+      cpi: 365,
       supplier: 1,
       stime: "11 Apr 2024 10:45",
     },
     {
       pid: "akia_8q3r6s",
-      cpi: "£3.40",
+      cpi: 340,
       supplier: 2,
       stime: "12 Apr 2024 14:00",
     },
     {
       pid: "akia_2s7t0u",
-      cpi: "£3.75",
+      cpi: 375,
       supplier: 3,
       stime: "13 Apr 2024 09:15",
     },
@@ -343,19 +343,19 @@ export const surveyPoints: Record<
   RDR000007: [
     {
       pid: "akia_6u1v4w",
-      cpi: "£2.80",
+      cpi: 280,
       supplier: 2,
       stime: "14 Feb 2024 10:00",
     },
     {
       pid: "akia_0w5x8y",
-      cpi: "£2.95",
+      cpi: 295,
       supplier: 3,
       stime: "15 Feb 2024 13:30",
     },
     {
       pid: "akia_4y9z2a",
-      cpi: "£2.70",
+      cpi: 270,
       supplier: 1,
       stime: "16 Feb 2024 15:00",
     },
@@ -363,37 +363,37 @@ export const surveyPoints: Record<
   RDR000008: [
     {
       pid: "akia_8a3b6c",
-      cpi: "£4.50",
+      cpi: 450,
       supplier: 1,
       stime: "20 Mar 2024 08:00",
     },
     {
       pid: "akia_2c7d0e",
-      cpi: "£4.75",
+      cpi: 475,
       supplier: 3,
       stime: "21 Mar 2024 09:15",
     },
     {
       pid: "akia_6e1f4g",
-      cpi: "£4.60",
+      cpi: 460,
       supplier: 2,
       stime: "22 Mar 2024 11:45",
     },
     {
       pid: "akia_0g5h8i",
-      cpi: "£4.40",
+      cpi: 440,
       supplier: 4,
       stime: "23 Mar 2024 14:00",
     },
     {
       pid: "akia_4i9j2k",
-      cpi: "£4.85",
+      cpi: 485,
       supplier: 1,
       stime: "24 Mar 2024 10:30",
     },
     {
       pid: "akia_8k3l6m",
-      cpi: "£4.55",
+      cpi: 455,
       supplier: 3,
       stime: "25 Mar 2024 16:00",
     },
@@ -401,19 +401,19 @@ export const surveyPoints: Record<
   RDR000009: [
     {
       pid: "akia_2m7n0o",
-      cpi: "£3.20",
+      cpi: 320,
       supplier: 2,
       stime: "25 Apr 2024 09:00",
     },
     {
       pid: "akia_6o1p4q",
-      cpi: "£3.35",
+      cpi: 335,
       supplier: 1,
       stime: "26 Apr 2024 11:30",
     },
     {
       pid: "akia_0q5r8s",
-      cpi: "£3.10",
+      cpi: 310,
       supplier: 4,
       stime: "27 Apr 2024 14:45",
     },
@@ -421,25 +421,25 @@ export const surveyPoints: Record<
   RDR000010: [
     {
       pid: "akia_4s9t2u",
-      cpi: "£5.00",
+      cpi: 500,
       supplier: 3,
       stime: "01 May 2024 08:00",
     },
     {
       pid: "akia_8u3v6w",
-      cpi: "£5.20",
+      cpi: 520,
       supplier: 1,
       stime: "02 May 2024 10:00",
     },
     {
       pid: "akia_2w7x0y",
-      cpi: "£4.90",
+      cpi: 490,
       supplier: 2,
       stime: "03 May 2024 13:15",
     },
     {
       pid: "akia_6y1z4a",
-      cpi: "£5.15",
+      cpi: 515,
       supplier: 4,
       stime: "04 May 2024 15:30",
     },
