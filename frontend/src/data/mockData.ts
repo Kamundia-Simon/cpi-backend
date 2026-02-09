@@ -46,70 +46,70 @@ export const allSurveys = [
     pm: "Shah",
     totalPaid: "£10.35",
     totalCompletes: 4,
-    startMonth: "Jan 2024",
+    startDate: "15 Jan 2024 09:00",
   },
   {
     surveyName: "RDR000002",
     pm: "Shah",
     totalPaid: "£9.10",
     totalCompletes: 3,
-    startMonth: "Feb 2024",
+    startDate: "10 Feb 2024 09:00",
   },
   {
     surveyName: "RDR000003",
     pm: "Shah",
     totalPaid: "£5.60",
     totalCompletes: 3,
-    startMonth: "Mar 2024",
+    startDate: "05 Mar 2024 08:00",
   },
   {
     surveyName: "RDR000004",
     pm: "Fatima",
     totalPaid: "£20.10",
     totalCompletes: 5,
-    startMonth: "Jan 2024",
+    startDate: "22 Jan 2024 11:00",
   },
   {
     surveyName: "RDR000005",
     pm: "Fatima",
     totalPaid: "£6.65",
     totalCompletes: 3,
-    startMonth: "Feb 2024",
+    startDate: "28 Feb 2024 09:00",
   },
   {
     surveyName: "RDR000006",
     pm: "Fatima",
     totalPaid: "£14.30",
     totalCompletes: 4,
-    startMonth: "Apr 2024",
+    startDate: "10 Apr 2024 08:00",
   },
   {
     surveyName: "RDR000007",
     pm: "Rose",
     totalPaid: "£8.45",
     totalCompletes: 3,
-    startMonth: "Feb 2024",
+    startDate: "14 Feb 2024 10:00",
   },
   {
     surveyName: "RDR000008",
     pm: "Rose",
     totalPaid: "£27.65",
     totalCompletes: 6,
-    startMonth: "Mar 2024",
+    startDate: "20 Mar 2024 08:00",
   },
   {
     surveyName: "RDR000009",
     pm: "Rose",
     totalPaid: "£9.65",
     totalCompletes: 3,
-    startMonth: "Apr 2024",
+    startDate: "25 Apr 2024 09:00",
   },
   {
     surveyName: "RDR000010",
     pm: "Fatima",
     totalPaid: "£20.25",
     totalCompletes: 4,
-    startMonth: "May 2024",
+    startDate: "01 May 2024 08:00",
   },
 ];
 
@@ -120,7 +120,7 @@ export const pmProjects: Record<
     surveyName: string;
     totalPaid: string;
     totalCompletes: number;
-    startMonth: string;
+    startDate: string;
   }[]
 > = {
   1: [
@@ -128,19 +128,19 @@ export const pmProjects: Record<
       surveyName: "RDR000001",
       totalPaid: "£10.35",
       totalCompletes: 4,
-      startMonth: "Jan 2024",
+      startDate: "15 Jan 2024 09:00",
     },
     {
       surveyName: "RDR000002",
       totalPaid: "£9.10",
       totalCompletes: 3,
-      startMonth: "Feb 2024",
+      startDate: "10 Feb 2024 09:00",
     },
     {
       surveyName: "RDR000003",
       totalPaid: "£5.60",
       totalCompletes: 3,
-      startMonth: "Mar 2024",
+      startDate: "05 Mar 2024 08:00",
     },
   ],
   2: [
@@ -148,25 +148,25 @@ export const pmProjects: Record<
       surveyName: "RDR000004",
       totalPaid: "£20.10",
       totalCompletes: 5,
-      startMonth: "Jan 2024",
+      startDate: "22 Jan 2024 11:00",
     },
     {
       surveyName: "RDR000005",
       totalPaid: "£6.65",
       totalCompletes: 3,
-      startMonth: "Feb 2024",
+      startDate: "28 Feb 2024 09:00",
     },
     {
       surveyName: "RDR000006",
       totalPaid: "£14.30",
       totalCompletes: 4,
-      startMonth: "Apr 2024",
+      startDate: "10 Apr 2024 08:00",
     },
     {
       surveyName: "RDR000010",
       totalPaid: "£20.25",
       totalCompletes: 4,
-      startMonth: "May 2024",
+      startDate: "01 May 2024 08:00",
     },
   ],
   3: [
@@ -174,19 +174,19 @@ export const pmProjects: Record<
       surveyName: "RDR000007",
       totalPaid: "£8.45",
       totalCompletes: 3,
-      startMonth: "Feb 2024",
+      startDate: "14 Feb 2024 10:00",
     },
     {
       surveyName: "RDR000008",
       totalPaid: "£27.65",
       totalCompletes: 6,
-      startMonth: "Mar 2024",
+      startDate: "20 Mar 2024 08:00",
     },
     {
       surveyName: "RDR000009",
       totalPaid: "£9.65",
       totalCompletes: 3,
-      startMonth: "Apr 2024",
+      startDate: "25 Apr 2024 09:00",
     },
   ],
 };
@@ -449,4 +449,8 @@ export const surveyPoints: Record<
 // Helper Functions
 export const parsePounds = (val: string): number =>
   parseFloat(val.replace("£", ""));
-export const parseMonth = (val: string): Date => new Date(val);
+export const parseDate = (val: string): Date => new Date(val);
+export const extractMonth = (val: string): string => {
+  const dt = new Date(val);
+  return dt.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+};

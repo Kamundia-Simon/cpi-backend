@@ -5,10 +5,10 @@ interface Project {
   surveyName: string;
   totalPaid: string;
   totalCompletes: number;
-  startMonth: string;
+  startDate: string;
 }
 
-type SortColumn = "surveyName" | "totalPaid" | "totalCompletes" | "startMonth";
+type SortColumn = "surveyName" | "totalPaid" | "totalCompletes" | "startDate";
 
 interface PMProjectsTableProps {
   projects: Project[];
@@ -57,11 +57,11 @@ export const PMProjectsTable = ({
             </th>
             <th className="text-left p-4 font-medium text-gray-900">
               <button
-                onClick={() => onSort("startMonth")}
+                onClick={() => onSort("startDate")}
                 className="flex items-center gap-1 hover:text-blue-600 transition-colors"
               >
-                Start Month
-                {renderSortIcon("startMonth")}
+                Start Date
+                {renderSortIcon("startDate")}
               </button>
             </th>
           </tr>
@@ -84,9 +84,7 @@ export const PMProjectsTable = ({
               <td className="p-4 text-sm text-gray-700">
                 {project.totalCompletes}
               </td>
-              <td className="p-4 text-sm text-gray-700">
-                {project.startMonth}
-              </td>
+              <td className="p-4 text-sm text-gray-700">{project.startDate}</td>
             </tr>
           ))}
         </tbody>

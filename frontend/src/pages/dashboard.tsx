@@ -16,11 +16,12 @@ import {
   allSurveys,
   pmStats,
   parsePounds,
-  parseMonth,
+  parseDate,
+  extractMonth,
 } from "../data/mockData";
 
 // Sortable column keys for the dashboard table
-type SortColumn = "surveyName" | "totalPaid" | "totalCompletes" | "startMonth";
+type SortColumn = "surveyName" | "totalPaid" | "totalCompletes" | "startDate";
 
 const Dashboard = () => {
   // Sort and filter state
@@ -29,11 +30,15 @@ const Dashboard = () => {
   const [pmFilter, setPmFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [monthFilter, setMonthFilter] = useState<string>("All");
+  const [startDateFrom, setStartDateFrom] = useState<string>("");
+  const [startDateTo, setStartDateTo] = useState<string>("");
 
   const uniqueMonths = useMemo(
     () => [
       "All",
-      ...Array.from(new Set(allSurveys.map((s) => s.startMonth))).sort(),
+      ...Array.from(
+        new Set(allSurveys.map((s) => extractMonth(s.startDate))),
+      ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime()),
     ],
     [],
   );
@@ -78,7 +83,17 @@ const Dashboard = () => {
 
     // Month filter
     if (monthFilter !== "All") {
-      result = result.filter((s) => s.startMonth === monthFilter);
+      result = result.filter((s) => extractMonth(s.startDate) === monthFilter);
+    }
+
+    // Date range filter
+    if (startDateFrom) {
+      const from = new Date(startDateFrom).getTime();
+      result = result.filter((s) => parseDate(s.startDate).getTime() >= from);
+    }
+    if (startDateTo) {
+      const to = new Date(startDateTo).getTime();
+      result = result.filter((s) => parseDate(s.startDate).getTime() <= to);
     }
 
     // Sort
@@ -95,10 +110,10 @@ const Dashboard = () => {
           case "totalCompletes":
             cmp = a.totalCompletes - b.totalCompletes;
             break;
-          case "startMonth":
+          case "startDate":
             cmp =
-              parseMonth(a.startMonth).getTime() -
-              parseMonth(b.startMonth).getTime();
+              parseDate(a.startDate).getTime() -
+              parseDate(b.startDate).getTime();
             break;
         }
         return sortOrder === "asc" ? cmp : -cmp;
@@ -106,7 +121,7 @@ const Dashboard = () => {
     }
 
     return result;
-  }, [sortBy, sortOrder, pmFilter, searchQuery, monthFilter]);
+  }, [sortBy, sortOrder, pmFilter, searchQuery, monthFilter, startDateFrom, startDateTo]);
 
   //Dynamic summarry metrics calcs
   const summaryMetrics = useMemo(() => {
@@ -190,7 +205,7 @@ const Dashboard = () => {
           {/* Month Filter */}
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Month
+              Month
             </label>
             <select
               value={monthFilter}
@@ -199,10 +214,34 @@ const Dashboard = () => {
             >
               {uniqueMonths.map((month) => (
                 <option key={month} value={month}>
-                  {month === "All" ? "Start Month" : month}
+                  {month === "All" ? "All Months" : month}
                 </option>
               ))}
             </select>
+          </div>
+          {/* Date Range - From */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              From Date
+            </label>
+            <input
+              type="date"
+              value={startDateFrom}
+              onChange={(e) => setStartDateFrom(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {/* Date Range - To */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              To Date
+            </label>
+            <input
+              type="date"
+              value={startDateTo}
+              onChange={(e) => setStartDateTo(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
           {/* PM Filter */}
           <div className="flex-1">
@@ -228,6 +267,8 @@ const Dashboard = () => {
               setSearchQuery("");
               setMonthFilter("All");
               setPmFilter("All");
+              setStartDateFrom("");
+              setStartDateTo("");
             }}
             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
           >

@@ -7,18 +7,18 @@ export interface PM {
 }
 
 export interface ProjectRaw {
-  id: string;        
+  id: string;
   surveyName: string;
   totalPaid: number;
-  startMonth: string;
+  startDate: string;
   totalCompletes: number;
   pmId: PMId;
 }
 
 // Frontend-transformed project
-export interface Project extends Omit<ProjectRaw, 'startMonth'> {
+export interface Project extends Omit<ProjectRaw, "startDate"> {
   totalPaidDisplay: number;
-  startMonth: Date;
+  startDate: Date;
 }
 
 //POINT data specs
@@ -26,16 +26,16 @@ export interface PointRecordRaw {
   id: number;
   pid: string;
   cpi: number;
-  stime: string;         
-  project: string;        
+  stime: string;
+  project: string;
   supplier: number;
-  pm: PMId;              
+  pm: PMId;
 }
 
 // Frontend-transformed point record
-export interface PointRecord extends Omit<PointRecordRaw, 'stime'> {
+export interface PointRecord extends Omit<PointRecordRaw, "stime"> {
   cpiDisplay: number;
-  stime: Date;           
+  stime: Date;
 }
 
 export interface TrendDataPoint {
