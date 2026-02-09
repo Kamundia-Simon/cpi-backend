@@ -71,7 +71,7 @@ function App() {
 
                       <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
                         Transforming Data Into{" "}
-                        <span className="text-[#ff2600]">
+                        <span className="text-[#FFD700]">
                           Actionable Insights
                         </span>
                       </h1>
