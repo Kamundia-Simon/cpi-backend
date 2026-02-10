@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from database import Base
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from helpers import serialize_datetime_to_iso
 
 class PointsDb(Base):
@@ -9,10 +9,10 @@ class PointsDb(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     pid = Column("PID", String, nullable=False)
     cpi = Column("CPI", Integer, nullable=False)
-    stime = Column("STIME", DateTime, nullable=False)
-    project = Column("PROJECT", String, nullable=False)
+    stime = Column("STIME", DateTime, nullable=False, index=True)
+    project = Column("PROJECT", String, nullable=False, index=True)
     supplier = Column("SUPPLIER", Integer, nullable=False)
-    pm = Column("PM", Integer, nullable=False)
+    pm = Column("PM", Integer, nullable=False, index=True)
     
 #To be created database to store PM names"""
 class PmNames(Base):
@@ -57,10 +57,11 @@ class PointsResponse(BaseModel):
     id: int
     pid: str
     cpi: int
-    supplier: int
+    supplier: str
     stime: str
 
-    @validator("stime", pre=True)
+    @field_validator("stime", mode="before")
+    @classmethod
     def validate_stime(cls, v):
         """Serialize datetime to ISO8601 string using helpers."""
         return serialize_datetime_to_iso(v)
