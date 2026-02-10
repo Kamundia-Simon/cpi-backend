@@ -1,8 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 from auth import authenticate
+from routes.pms import router as pms_router
+from routes.surveys import router as surveys_router
+from routes.dashboard import router as dashboard_router
 
 
 load_dotenv()
@@ -17,6 +20,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(pms_router)
+app.include_router(surveys_router)
+app.include_router(dashboard_router)
 
 def get_current_user(request: Request):
     return authenticate(request)
