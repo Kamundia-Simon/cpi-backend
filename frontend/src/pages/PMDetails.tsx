@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { getPMSurveys } from "../api";
 import { PMProjectsTable } from "../components/tables/PMProjectsTable";
 import {
   PoundSterling,
@@ -11,20 +11,27 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import SummaryTile from "../components/tiles/SummaryTile";
-import type { PMId } from "../types";
-import { pmNames, pmProjects, parsePounds, parseDate, extractMonth } from "../data/mockData";
+
+// Helpers
+const parseDate = (val: string): Date => new Date(val);
+const extractMonth = (val: string): string => {
+  const dt = new Date(val);
+  return dt.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+};
 
 // Sortable column keys for the PM table
 type SortColumn = "surveyName" | "totalPaid" | "totalCompletes" | "startDate";
 
 const PMDetail = () => {
+  const { pmId } = useParams();
   const navigate = useNavigate();
-  const { pmId } = useParams<{ pmId: string }>();
-  const pmIdNum = Number(pmId) as PMId;
-  const pmName = pmNames[pmIdNum] ?? "Unknown";
-  const projects = pmProjects[pmIdNum] ?? [];
+  const pmIdNum = Number(pmId);
 
-  // Sort and filter state
+  const [pmName, setPmName] = useState<string>("Loading...");
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [sortBy, setSortBy] = useState<SortColumn | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -32,13 +39,30 @@ const PMDetail = () => {
   const [startDateFrom, setStartDateFrom] = useState<string>("");
   const [startDateTo, setStartDateTo] = useState<string>("");
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const surveysData = await getPMSurveys(pmIdNum);
+        setProjects(surveysData);
+        if (surveysData.length > 0) {
+          setPmName(surveysData[0].pm);
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [pmIdNum]);
+
   // Get unique months for filters
   const uniqueMonths = useMemo(
     () => [
       "All",
-      ...Array.from(new Set(projects.map((p) => extractMonth(p.startDate)))).sort(
-        (a, b) => new Date(a).getTime() - new Date(b).getTime()
-      ),
+      ...Array.from(
+        new Set(projects.map((p) => extractMonth(p.startDate))),
+      ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime()),
     ],
     [projects],
   );
@@ -101,7 +125,7 @@ const PMDetail = () => {
           cmp = a.surveyName.localeCompare(b.surveyName);
           break;
         case "totalPaid":
-          cmp = parsePounds(a.totalPaid) - parsePounds(b.totalPaid);
+          cmp = a.totalPaid - b.totalPaid;
           break;
         case "totalCompletes":
           cmp = a.totalCompletes - b.totalCompletes;
@@ -113,12 +137,20 @@ const PMDetail = () => {
       }
       return sortOrder === "asc" ? cmp : -cmp;
     });
-  }, [projects, sortBy, sortOrder, searchQuery, monthFilter, startDateFrom, startDateTo]);
+  }, [
+    projects,
+    sortBy,
+    sortOrder,
+    searchQuery,
+    monthFilter,
+    startDateFrom,
+    startDateTo,
+  ]);
 
   // Dynamic summary calcs based on filters
   const summaryMetrics = useMemo(() => {
     const totalPaid = sorted.reduce(
-      (sum, p) => sum + parsePounds(p.totalPaid),
+      (sum, p) => sum + p.totalPaid,
       0,
     );
     const totalProjects = sorted.length;
@@ -130,6 +162,22 @@ const PMDetail = () => {
       totalProjects: totalProjects.toString(),
     };
   }, [sorted]);
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[50vh]">
+        <p className="text-gray-500 text-lg">Loading PM details...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[50vh]">
+        <p className="text-red-500 text-lg">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -144,7 +192,6 @@ const PMDetail = () => {
         <h1 className="text-2xl font-bold">PM: {pmName}</h1>
       </div>
 
-      {/* PM Summary Tiles*/}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <SummaryTile
           title="Total Amount"
@@ -163,12 +210,12 @@ const PMDetail = () => {
         />
       </div>
 
-      <h2 className="text-lg font-semibold mb-4">Surveys</h2>
+      <h2 className="text-lg font-bold mb-4">Surveys</h2>
       <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
         <div className="flex items-end gap-4">
           {/* Search Input */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
               Survey Name
             </label>
             <input
@@ -181,7 +228,7 @@ const PMDetail = () => {
           </div>
           {/* Month Filter */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
               Month
             </label>
             <select
@@ -198,7 +245,7 @@ const PMDetail = () => {
           </div>
           {/* Date Range - From */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
               From Date
             </label>
             <input
@@ -210,7 +257,7 @@ const PMDetail = () => {
           </div>
           {/* Date Range - To */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
               To Date
             </label>
             <input
@@ -228,7 +275,7 @@ const PMDetail = () => {
               setStartDateFrom("");
               setStartDateTo("");
             }}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-semibold transition-colors"
           >
             Clear Filters
           </button>

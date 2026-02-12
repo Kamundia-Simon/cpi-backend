@@ -1,16 +1,14 @@
-import { useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronUp, ChevronDown } from "lucide-react";
-import { surveyPoints } from "../data/mockData";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, ChevronUp, ChevronDown, PoundSterling, Users } from "lucide-react";
+import { getSurveyPoints } from "../api";
 import { SurveyPointsTable } from "../components/tables/SurveyPointsTable";
 import SummaryTile from "../components/tiles/SummaryTile";
-import { PoundSterling, Users } from "lucide-react";
 
 interface Point {
   pid: string;
   cpi: number;
-  supplier: number;
+  supplier: string;
   stime: string;
 }
 
@@ -20,8 +18,23 @@ const SurveyDetail = () => {
   const navigate = useNavigate();
   const { surveyName } = useParams<{ surveyName: string }>();
 
-  // Hardcoded placeholder
-  const points: Point[] = surveyPoints[surveyName ?? ""] ?? [];
+  const [points, setPoints] = useState<Point[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getSurveyPoints(surveyName ?? "");
+        setPoints(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [surveyName]);
 
   // Filter and sort state
   const [selectedSupplier, setSelectedSupplier] = useState<string>("All");
@@ -89,7 +102,7 @@ const SurveyDetail = () => {
             cmp = a.cpi - b.cpi;
             break;
           case "supplier":
-            cmp = a.supplier - b.supplier;
+            cmp = a.supplier.localeCompare(b.supplier);
             break;
           case "stime":
             cmp = new Date(a.stime).getTime() - new Date(b.stime).getTime();
@@ -114,6 +127,22 @@ const SurveyDetail = () => {
     [totalCPI, totalCompletes],
   );
 
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[50vh]">
+        <p className="text-gray-500 text-lg">Loading survey details...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[50vh]">
+        <p className="text-red-500 text-lg">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <div className="flex items-center gap-4 mb-6">
@@ -127,7 +156,6 @@ const SurveyDetail = () => {
         <h1 className="text-2xl font-bold">Survey: {surveyName}</h1>
       </div>
 
-      {/* Summary Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <SummaryTile
           title="Total on Project"
@@ -146,14 +174,14 @@ const SurveyDetail = () => {
         />
       </div>
 
-      <h2 className="text-lg font-semibold mb-4">Point Records</h2>
+      <h2 className="text-lg font-bold mb-4">Point Records</h2>
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
         <div className="flex items-end gap-4">
           {/* Supplier Filter */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
               Supplier
             </label>
             <select
@@ -165,7 +193,7 @@ const SurveyDetail = () => {
                 <option key={supplier} value={supplier}>
                   {supplier === "All"
                     ? "All Suppliers"
-                    : `Supplier ${supplier}`}
+                    : supplier}
                 </option>
               ))}
             </select>
@@ -173,7 +201,7 @@ const SurveyDetail = () => {
 
           {/* CPI Min */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
               CPI Min
             </label>
             <input
@@ -187,7 +215,7 @@ const SurveyDetail = () => {
 
           {/* CPI Max */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
               CPI Max
             </label>
             <input
@@ -206,7 +234,7 @@ const SurveyDetail = () => {
               setCpiMin("0");
               setCpiMax("");
             }}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-semibold transition-colors"
           >
             Clear Filters
           </button>
