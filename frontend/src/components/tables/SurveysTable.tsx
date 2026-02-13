@@ -29,7 +29,7 @@ export const SurveysTable = ({
       <table className="w-full bg-white border border-gray-200 rounded-lg">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
-            <th className="text-left p-4 font-medium text-gray-900">
+            <th className="text-left p-4 font-semibold text-gray-900">
               <button
                 onClick={() => onSort("surveyName")}
                 className="flex items-center gap-1 hover:text-blue-600 transition-colors"
@@ -38,8 +38,8 @@ export const SurveysTable = ({
                 {renderSortIcon("surveyName")}
               </button>
             </th>
-            <th className="text-left p-4 font-medium text-gray-900">PM</th>
-            <th className="text-left p-4 font-medium text-gray-900">
+            <th className="text-left p-4 font-semibold text-gray-900">PM</th>
+            <th className="text-left p-4 font-semibold text-gray-900">
               <button
                 onClick={() => onSort("totalPaid")}
                 className="flex items-center gap-1 hover:text-blue-600 transition-colors"
@@ -48,7 +48,7 @@ export const SurveysTable = ({
                 {renderSortIcon("totalPaid")}
               </button>
             </th>
-            <th className="text-left p-4 font-medium text-gray-900">
+            <th className="text-left p-4 font-semibold text-gray-900">
               <button
                 onClick={() => onSort("totalCompletes")}
                 className="flex items-center gap-1 hover:text-blue-600 transition-colors"
@@ -57,7 +57,7 @@ export const SurveysTable = ({
                 {renderSortIcon("totalCompletes")}
               </button>
             </th>
-            <th className="text-left p-4 font-medium text-gray-900">
+            <th className="text-left p-4 font-semibold text-gray-900">
               <button
                 onClick={() => onSort("startDate")}
                 className="flex items-center gap-1 hover:text-blue-600 transition-colors"
@@ -74,7 +74,7 @@ export const SurveysTable = ({
               key={survey.surveyName}
               className="hover:bg-gray-50 transition-colors"
             >
-              <td className="p-4 text-sm font-medium text-gray-900">
+              <td className="p-4 text-sm font-semibold text-gray-900">
                 <Link
                   to={ROUTES.SURVEY_DETAIL(survey.surveyName)}
                   className="text-blue-600 hover:underline"
@@ -82,12 +82,12 @@ export const SurveysTable = ({
                   {survey.surveyName}
                 </Link>
               </td>
-              <td className="p-4 text-sm text-gray-700">{survey.pm}</td>
-              <td className="p-4 text-sm text-gray-700">{survey.totalPaid}</td>
-              <td className="p-4 text-sm text-gray-700">
+              <td className="p-4 text-sm font-medium text-gray-700">{survey.pm}</td>
+              <td className="p-4 text-sm font-medium text-gray-700">{survey.totalPaid}</td>
+              <td className="p-4 text-sm font-medium text-gray-700">
                 {survey.totalCompletes}
               </td>
-              <td className="p-4 text-sm text-gray-700">{survey.startDate}</td>
+              <td className="p-4 text-sm font-medium text-gray-700">{survey.startDate}</td>
             </tr>
           ))}
         </tbody>

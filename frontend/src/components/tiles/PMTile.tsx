@@ -21,8 +21,8 @@ const PMTile = ({ id, name, totalProjects, totalAmount }: PMTileProps) => {
           <User className="h-6 w-6 text-gray-600" />
         </div>
         <div>
-          <p className="text-lg font-semibold">{name}</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-lg font-bold">{name}</p>
+          <p className="text-sm font-medium text-gray-500">
             {totalProjects} projects · {totalAmount}
           </p>
         </div>

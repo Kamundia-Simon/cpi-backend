@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 interface SurveyPoint {
   pid: string;
   cpi: number;
-  supplier: number;
+  supplier: string;
   stime: string;
 }
 
@@ -41,9 +41,9 @@ export const SurveyPointsTable = ({
       <table className="w-full border-collapse text-sm">
         <thead className="bg-gray-100 sticky top-0">
           <tr>
-            <th className="p-3 text-left font-semibold text-gray-700">PID</th>
+            <th className="p-3 text-left font-bold text-gray-700">PID</th>
             <th
-              className="p-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200"
+              className="p-3 text-left font-bold text-gray-700 cursor-pointer hover:bg-gray-200"
               onClick={() => onSort?.("cpi")}
             >
               <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export const SurveyPointsTable = ({
               </div>
             </th>
             <th
-              className="p-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200"
+              className="p-3 text-left font-bold text-gray-700 cursor-pointer hover:bg-gray-200"
               onClick={() => onSort?.("supplier")}
             >
               <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export const SurveyPointsTable = ({
               </div>
             </th>
             <th
-              className="p-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200"
+              className="p-3 text-left font-bold text-gray-700 cursor-pointer hover:bg-gray-200"
               onClick={() => onSort?.("stime")}
             >
               <div className="flex items-center gap-2">
@@ -84,10 +84,10 @@ export const SurveyPointsTable = ({
                 key={`${point.pid}-${point.stime}-${index}`}
                 className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
               >
-                <td className="p-3 text-gray-900">{point.pid}</td>
-                <td className="p-3 text-gray-900">{formatCPI(point.cpi)}</td>
-                <td className="p-3 text-gray-900">Supplier {point.supplier}</td>
-                <td className="p-3 text-gray-700 text-xs">
+                <td className="p-3 font-medium text-gray-900">{point.pid}</td>
+                <td className="p-3 font-medium text-gray-900">{formatCPI(point.cpi)}</td>
+                <td className="p-3 font-medium text-gray-900">{point.supplier}</td>
+                <td className="p-3 font-medium text-gray-700 text-sm">
                   {formatDate(point.stime)}
                 </td>
               </tr>

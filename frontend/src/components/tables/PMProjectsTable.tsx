@@ -28,7 +28,7 @@ export const PMProjectsTable = ({
       <table className="w-full">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
-            <th className="text-left p-4 font-medium text-gray-900">
+            <th className="text-left p-4 font-semibold text-gray-900">
               <button
                 onClick={() => onSort("surveyName")}
                 className="flex items-center gap-1 hover:text-blue-600 transition-colors"
@@ -37,7 +37,7 @@ export const PMProjectsTable = ({
                 {renderSortIcon("surveyName")}
               </button>
             </th>
-            <th className="text-left p-4 font-medium text-gray-900">
+            <th className="text-left p-4 font-semibold text-gray-900">
               <button
                 onClick={() => onSort("totalPaid")}
                 className="flex items-center gap-1 hover:text-blue-600 transition-colors"
@@ -46,7 +46,7 @@ export const PMProjectsTable = ({
                 {renderSortIcon("totalPaid")}
               </button>
             </th>
-            <th className="text-left p-4 font-medium text-gray-900">
+            <th className="text-left p-4 font-semibold text-gray-900">
               <button
                 onClick={() => onSort("totalCompletes")}
                 className="flex items-center gap-1 hover:text-blue-600 transition-colors"
@@ -55,7 +55,7 @@ export const PMProjectsTable = ({
                 {renderSortIcon("totalCompletes")}
               </button>
             </th>
-            <th className="text-left p-4 font-medium text-gray-900">
+            <th className="text-left p-4 font-semibold text-gray-900">
               <button
                 onClick={() => onSort("startDate")}
                 className="flex items-center gap-1 hover:text-blue-600 transition-colors"
@@ -75,16 +75,16 @@ export const PMProjectsTable = ({
               <td className="p-4">
                 <Link
                   to={ROUTES.SURVEY_DETAIL(project.surveyName)}
-                  className="font-medium text-blue-600 hover:underline"
+                  className="font-semibold text-blue-600 hover:underline"
                 >
                   {project.surveyName}
                 </Link>
               </td>
-              <td className="p-4 text-sm text-gray-700">{project.totalPaid}</td>
-              <td className="p-4 text-sm text-gray-700">
+              <td className="p-4 text-sm font-medium text-gray-700">{project.totalPaid}</td>
+              <td className="p-4 text-sm font-medium text-gray-700">
                 {project.totalCompletes}
               </td>
-              <td className="p-4 text-sm text-gray-700">{project.startDate}</td>
+              <td className="p-4 text-sm font-medium text-gray-700">{project.startDate}</td>
             </tr>
           ))}
         </tbody>
