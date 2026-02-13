@@ -23,7 +23,7 @@ function App() {
               </div>
               <span className="text-xl">
                 <span className="font-semibold">GEM</span>
-                <span className="font-normal">CPI</span>
+                <span className="font-normal"> CPI Tracker</span>
               </span>
             </div>
             <div className="flex items-center gap-1">
@@ -63,22 +63,23 @@ function App() {
                   <div className="container relative z-10 mx-auto px-4">
                     <div className="mx-auto max-w-[800px] text-center">
                       <div className="mb-6 inline-flex items-center rounded-full border bg-white px-3 py-1 text-sm">
-                        <span className="mr-2 rounded-full bg-black px-1.5 py-0.5 text-xs font-medium text-white">
+                        <span className="mr-2 rounded-full bg-yellow-400 px-1.5 py-0.5 text-xs font-medium text-black">
                           New
                         </span>
-                        <span className="text-gray-600">CPI Analytic Tool</span>
+                        <span className="text-gray-600">CPI Tracking Tool</span>
                       </div>
 
                       <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-                        Transforming Data Into{" "}
-                        <span className="text-[#FFD700]">
-                          Actionable Insights
+                        A Clear View of Sapmling Trends Analysing Trends in{" "}
+                        <span className="text-[#EAB308]">
+                          Project Sampling and Costs Breakdowns
                         </span>
                       </h1>
 
                       <p className="mb-8 text-lg text-gray-600 md:text-xl">
-                        CPI Dashboard helps you analyze and visualize trends in
-                        survey sampling, providing actionable insights.
+                        CPI Dashboard helps you make informed decisions by
+                        transforming sampling activity into measurable cost and
+                        performance insights.
                       </p>
 
                       <div className="flex justify-center">
@@ -107,7 +108,7 @@ function App() {
                         <SignedIn>
                           <Link
                             to={ROUTES.DASHBOARD}
-                            className="inline-flex items-center justify-center rounded-md bg-black px-6 py-3 text-base font-medium text-white hover:bg-black/90"
+                            className="inline-flex items-center justify-center rounded-md bg bg-yellow-400 px-6 py-3 text-base font-medium text-white hover:bg-black/90"
                           >
                             Go to Dashboard
                             <svg
