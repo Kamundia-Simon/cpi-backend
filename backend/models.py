@@ -7,26 +7,13 @@ class PointsDb(Base):
     __tablename__ = "points"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    pid = Column("PID", String, nullable=False)
-    cpi = Column("CPI", Integer, nullable=False)
-    stime = Column("STIME", DateTime, nullable=False, index=True)
-    project = Column("PROJECT", String, nullable=False, index=True)
-    supplier = Column("SUPPLIER", Integer, nullable=False)
-    pm = Column("PM", Integer, nullable=False, index=True)
-    
-#To be created database to store PM names"""
-class PmNames(Base):
-    __tablename__ = "pm_names"
-
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    pm_name = Column("PM_NAME", String, nullable=False)
-
-#To be created database to store supplier names"""
-class SupplierNames(Base):
-    __tablename__ = "supplier_names"
-
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    supplier_name = Column("SUPPLIER_NAME", String, nullable=False)
+    pid = Column("pid", String(255), nullable=False)
+    cpi = Column("cpi", Integer, nullable=False)
+    stime = Column("stime", DateTime, nullable=False, index=True)
+    project = Column("project", String(255), nullable=False, index=True)
+    supplier = Column("supplier", Integer, nullable=False)
+    pm = Column("pm", Integer, nullable=False, index=True)
+    suppname = Column("suppname", String(255), nullable=True)
 
 # GET /api/pms
 class PMResponse(BaseModel):
@@ -59,6 +46,7 @@ class PointsResponse(BaseModel):
     cpi: int
     supplier: str
     stime: str
+    suppname: str | None
 
     @field_validator("stime", mode="before")
     @classmethod

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import get_db
 from sqlalchemy import func
-from models import PMSummaryResponse, PmNames, PMResponse, SurveyResponse, PointsDb
-
+from models import PMSummaryResponse, PMResponse, SurveyResponse, PointsDb
+from helpers import PM_NAMES
 router = APIRouter(prefix="/api/pms", tags=["PMs"])
 
 @router.get("/{pmId}/surveys", response_model=list[SurveyResponse])
@@ -14,14 +14,13 @@ def get_pm_surveys(
     results = (
         db.query(
             PointsDb.project.label("surveyName"),
-            PmNames.pm_name.label("pm"),
+            PointsDb.pm.label("pmId"),
             (func.sum(PointsDb.cpi) / 100.0).label("totalPaid"),
             func.count().label("totalCompletes"),
             func.min(PointsDb.stime).label("startDate"),
         )
-        .join(PmNames, PointsDb.pm == PmNames.id)
         .filter(PointsDb.pm == pmId)
-        .group_by(PointsDb.project, PmNames.pm_name)
+        .group_by(PointsDb.project, PointsDb.pm)
         .all()
     )
 
@@ -31,7 +30,7 @@ def get_pm_surveys(
         surveys.append(
             SurveyResponse(
                 surveyName=row.surveyName,
-                pm=row.pm,
+                pm=PM_NAMES.get(row.pmId, f"Unknown PM {row.pmId}"),
                 totalPaid=float(row.totalPaid),
                 totalCompletes=row.totalCompletes,
                 startDate=row.startDate.strftime("%d %b %Y %H:%M"),
@@ -72,6 +71,8 @@ def get_pm_summary(
     )
 
 @router.get("", response_model=list[PMResponse])
-def get_pms(db: Session = Depends(get_db)):
-    pms = db.query(PmNames).all()
-    return [PMResponse(id=pm.id, name=pm.pm_name) for pm in pms]
+def get_pms():
+    return [
+        PMResponse(id=k, name=v)
+        for k, v in PM_NAMES.items()
+    ]
