@@ -42,7 +42,6 @@ def get_survey_points(surveyName: str, db: Session = Depends(get_db)):
             PointsDb.cpi,
             PointsDb.supplier,
             PointsDb.stime,
-            PointsDb.suppname,
         )
         .filter(PointsDb.project == surveyName)
         .all()
@@ -54,7 +53,7 @@ def get_survey_points(surveyName: str, db: Session = Depends(get_db)):
             cpi=r.cpi,
             supplier=SUPPLIER_NAMES.get(r.supplier, f"Unknown Supplier {r.supplier}"),
             stime=r.stime,
-            suppname=r.suppname,
+            suppname=None,
         )
         for r in results
     ]
