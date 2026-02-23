@@ -1,6 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronUp, ChevronDown, PoundSterling, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronUp,
+  ChevronDown,
+  PoundSterling,
+  Users,
+} from "lucide-react";
 import { getSurveyPoints } from "../api";
 import { SurveyPointsTable } from "../components/tables/SurveyPointsTable";
 import SummaryTile from "../components/tiles/SummaryTile";
@@ -10,6 +16,7 @@ interface Point {
   cpi: number;
   supplier: string;
   stime: string;
+  suppname?: string | null;
 }
 
 type SortColumn = "cpi" | "supplier" | "stime";
@@ -43,6 +50,33 @@ const SurveyDetail = () => {
   const [sortBy, setSortBy] = useState<SortColumn | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
+  //Fulcrum markup formula.
+
+  const computeDisplayCPI = (p: Point): number => {
+    if (p.supplier === "Fulcrum") {
+      return (p.cpi / 100 + 0.17) * 1.05;
+    }
+    return p.cpi / 100;
+  };
+
+  const [selectedSubSupplier, setSelectedSubSupplier] = useState<string>("All");
+
+  // Sub-supplier options (only from Fulcrum points with a non-empty suppname)
+  const uniqueSubSuppliers = useMemo(
+    () => [
+      "All",
+      ...Array.from(
+        new Set(
+          points
+            .filter((p) => p.supplier === "Fulcrum" && p.suppname)
+            .map((p) => p.suppname as string),
+        ),
+      ).sort(),
+    ],
+    [points],
+  );
+
+  const hasFulcrumSubSuppliers = uniqueSubSuppliers.length > 1;
   // Get unique suppliers
   const uniqueSuppliers = useMemo(
     () => [
@@ -83,6 +117,12 @@ const SurveyDetail = () => {
       result = result.filter((p) => p.supplier.toString() === selectedSupplier);
     }
 
+    //Fulcrum sub-supplier filter
+    if (hasFulcrumSubSuppliers && selectedSubSupplier !== "All") {
+      result = result.filter(
+        (p) => p.supplier === "Fulcrum" && p.suppname === selectedSubSupplier,
+      );
+    }
     // CPI range filter (convert pounds to pence)
     if (cpiMin) {
       const min = parseFloat(cpiMin) * 100;
@@ -113,11 +153,19 @@ const SurveyDetail = () => {
     }
 
     return result;
-  }, [points, selectedSupplier, cpiMin, cpiMax, sortBy, sortOrder]);
+  }, [
+    points,
+    selectedSupplier,
+    selectedSubSupplier,
+    cpiMin,
+    cpiMax,
+    sortBy,
+    sortOrder,
+  ]);
 
   // Calculate metrics
   const totalCPI = useMemo(
-    () => filteredAndSorted.reduce((sum, p) => sum + p.cpi, 0),
+    () => filteredAndSorted.reduce((sum, p) => sum + computeDisplayCPI(p), 0),
     [filteredAndSorted],
   );
   const totalCompletes = filteredAndSorted.length;
@@ -159,12 +207,12 @@ const SurveyDetail = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <SummaryTile
           title="Total on Project"
-          value={`£${(totalCPI / 100).toFixed(2)}`}
+          value={`£${totalCPI.toFixed(2)}`}
           icon={PoundSterling}
         />
         <SummaryTile
           title="Average"
-          value={`£${(parseFloat(averageCPI) / 100).toFixed(2)}`}
+          value={`£${parseFloat(averageCPI).toFixed(2)}`}
           icon={PoundSterling}
         />
         <SummaryTile
@@ -191,13 +239,31 @@ const SurveyDetail = () => {
             >
               {uniqueSuppliers.map((supplier) => (
                 <option key={supplier} value={supplier}>
-                  {supplier === "All"
-                    ? "All Suppliers"
-                    : supplier}
+                  {supplier === "All" ? "All Suppliers" : supplier}
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Sub-supplier Filter (Fulcrum only) */}
+          {hasFulcrumSubSuppliers && (
+            <div className="flex-1">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Sub-supplier
+              </label>
+              <select
+                value={selectedSubSupplier}
+                onChange={(e) => setSelectedSubSupplier(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {uniqueSubSuppliers.map((s) => (
+                  <option key={s} value={s}>
+                    {s === "All" ? "All Sub-suppliers" : s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* CPI Min */}
           <div className="flex-1">
@@ -207,6 +273,7 @@ const SurveyDetail = () => {
             <input
               type="number"
               placeholder="Min CPI"
+              step="0.05"
               value={cpiMin}
               onChange={(e) => setCpiMin(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -221,6 +288,7 @@ const SurveyDetail = () => {
             <input
               type="number"
               placeholder="Max CPI"
+              step="0.05"
               value={cpiMax}
               onChange={(e) => setCpiMax(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -231,6 +299,7 @@ const SurveyDetail = () => {
           <button
             onClick={() => {
               setSelectedSupplier("All");
+              setSelectedSubSupplier("All");
               setCpiMin("0");
               setCpiMax("");
             }}
@@ -242,7 +311,10 @@ const SurveyDetail = () => {
       </div>
 
       <SurveyPointsTable
-        points={filteredAndSorted}
+        points={filteredAndSorted.map((p) => ({
+          ...p,
+          cpiDisplay: computeDisplayCPI(p),
+        }))}
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSort={handleSort}

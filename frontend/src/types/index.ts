@@ -30,6 +30,7 @@ export interface PointRecordRaw {
   project: string;
   supplier: number;
   pm: PMId;
+  suppname?: string | null;
 }
 
 // Frontend-transformed point record

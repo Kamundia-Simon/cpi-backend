@@ -5,6 +5,7 @@ interface SurveyPoint {
   cpi: number;
   supplier: string;
   stime: string;
+  suppname?: string | null;
 }
 
 interface SurveyPointsTableProps {
@@ -20,7 +21,8 @@ export const SurveyPointsTable = ({
   onSort,
   renderSortIcon,
 }: SurveyPointsTableProps) => {
-  const formatCPI = (cpi: number) => `£${(cpi / 100).toFixed(2)}`;
+  const formatCPI = (cpi: number, isFulcrum: boolean) =>
+    `£${(isFulcrum ? (cpi / 100 + 0.17) * 1.05 : cpi / 100).toFixed(2)}`;
   const formatDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
@@ -85,8 +87,17 @@ export const SurveyPointsTable = ({
                 className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 <td className="p-3 font-medium text-gray-900">{point.pid}</td>
-                <td className="p-3 font-medium text-gray-900">{formatCPI(point.cpi)}</td>
-                <td className="p-3 font-medium text-gray-900">{point.supplier}</td>
+                <td className="p-3 font-medium text-gray-900">
+                  {formatCPI(point.cpi, point.supplier === "Fulcrum")}
+                </td>
+                <td className="p-3 font-medium text-gray-900">
+                  {point.supplier}
+                  {point.suppname && (
+                    <div className="text-xs text-gray-500 font-normal">
+                      {point.suppname}
+                    </div>
+                  )}
+                </td>
                 <td className="p-3 font-medium text-gray-700 text-sm">
                   {formatDate(point.stime)}
                 </td>
