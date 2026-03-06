@@ -19,7 +19,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       {/* Mobile backdrop */}
       <Backdrop />
 
-      {/* Main content — shifts right on desktop based on sidebar state */}
+      {/* Sidebar shift state*/}
       <div
         className={[
           "flex flex-col min-h-screen transition-all duration-300 ease-in-out",
@@ -28,9 +28,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       >
         <AppHeader />
 
-        <main className="flex-1 p-4 md:p-6">
-          {children}
-        </main>
+        <main className="flex-1 p-4 md:p-6">{children}</main>
 
         <footer className="px-4 py-4 md:px-6 border-t border-gray-100">
           <p className="text-center text-sm text-gray-400">

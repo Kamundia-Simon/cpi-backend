@@ -12,31 +12,35 @@ interface PM {
 
 interface Survey {
   surveyName: string;
-  startDate: string; // "dd MMM YYYY HH:MM"
+  startDate: string;
 }
 
-/** Parse "dd MMM YYYY HH:MM" → "MMM YYYY" label and sortable "YYYY-MM" key */
+/** Parse date */
 function parseSurveyMonth(startDate: string): { key: string; label: string } {
-  const parts = startDate.split(" "); // ["03", "Jan", "2026", "09:15"]
+  const parts = startDate.split(" ");
   const month = parts[1] ?? "";
   const year = parts[2] ?? "";
-  const monthIndex = new Date(`${month} 1 ${year}`).getMonth(); // 0-based
+  const monthIndex = new Date(`${month} 1 ${year}`).getMonth();
   const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
   return { key, label: `${month} ${year}` };
 }
 
 export const AppSidebar = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } =
-    useSidebar();
+  const {
+    isExpanded,
+    isMobileOpen,
+    isHovered,
+    setIsHovered,
+    toggleMobileSidebar,
+  } = useSidebar();
   const location = useLocation();
 
   const [pms, setPMs] = useState<PM[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  // Both submenus collapsed by default — auto-open only when on their routes
   const [pmSubmenuOpen, setPmSubmenuOpen] = useState(false);
   const [surveySubmenuOpen, setSurveySubmenuOpen] = useState(false);
   const [surveySubmenuMounted, setSurveySubmenuMounted] = useState(false);
-  const [monthExpanded, setMonthExpanded] = useState<string>(""); // which month's survey list is open
+  const [monthExpanded, setMonthExpanded] = useState<string>("");
 
   // Fetch PMs
   useEffect(() => {
@@ -52,7 +56,7 @@ export const AppSidebar = () => {
       .catch(() => setSurveys([]));
   }, []);
 
-  // Derive sorted unique months from survey data
+  // Derive unique months from surveys for the menu
   const availableMonths = useMemo(() => {
     const seen = new Set<string>();
     const months: { key: string; label: string }[] = [];
@@ -63,14 +67,9 @@ export const AppSidebar = () => {
         months.push({ key, label });
       }
     }
-    // Sort descending (most recent first)
     return months.sort((a, b) => b.key.localeCompare(a.key));
   }, [surveys]);
 
-
-  // Auto-open submenus when navigating to their routes.
-  // For surveys: also pre-select the correct month, but keep collapsed until user clicks.
-  // We use surveySubmenuMounted to avoid opening on the very first render.
   useEffect(() => {
     if (location.pathname.startsWith("/pm")) {
       setPmSubmenuOpen(true);
@@ -79,17 +78,15 @@ export const AppSidebar = () => {
 
   useEffect(() => {
     if (!location.pathname.startsWith("/survey")) return;
-    // Pre-select the month and expand that month's list for the active survey
     if (surveys.length > 0) {
       const activeSurvey = surveys.find(
-        (s) => ROUTES.SURVEY_DETAIL(s.surveyName) === location.pathname
+        (s) => ROUTES.SURVEY_DETAIL(s.surveyName) === location.pathname,
       );
       if (activeSurvey) {
         const { key } = parseSurveyMonth(activeSurvey.startDate);
-        setMonthExpanded(key); // auto-expand the month containing this survey
+        setMonthExpanded(key);
       }
     }
-    // Only auto-open the submenu on subsequent navigations, not on initial page load
     if (surveySubmenuMounted) {
       setSurveySubmenuOpen(true);
     } else {
@@ -97,10 +94,8 @@ export const AppSidebar = () => {
     }
   }, [location.pathname, surveys, surveySubmenuMounted]);
 
-  // Close mobile sidebar on route change
   useEffect(() => {
     if (isMobileOpen) toggleMobileSidebar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
   const isVisible = isExpanded || isHovered || isMobileOpen;
@@ -117,12 +112,14 @@ export const AppSidebar = () => {
         "flex flex-col",
         "transition-all duration-300 ease-in-out",
         isExpanded || isHovered ? "lg:w-[290px]" : "lg:w-[90px]",
-        isMobileOpen ? "translate-x-0 w-[290px]" : "-translate-x-full lg:translate-x-0",
+        isMobileOpen
+          ? "translate-x-0 w-[290px]"
+          : "-translate-x-full lg:translate-x-0",
       ].join(" ")}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* ── Logo ─────────────────────────────────────────────── */}
+      {/*Logo*/}
       <div
         className={[
           "flex items-center border-b border-gray-200 h-16 px-5 shrink-0",
@@ -142,10 +139,9 @@ export const AppSidebar = () => {
         </Link>
       </div>
 
-      {/* ── Navigation ───────────────────────────────────────── */}
+      {/*Navigation*/}
       <nav className="flex-1 overflow-y-auto py-6 px-3">
-
-        {/* ── MENU group ──────────────────────────────────────── */}
+        {/*MENU group*/}
         <div className="mb-6">
           <GroupLabel isVisible={isVisible} label="Menu" />
           <ul className="flex flex-col gap-1">
@@ -155,28 +151,40 @@ export const AppSidebar = () => {
                 title={!isVisible ? "Dashboard" : undefined}
                 className={navItemClass(isDashboardActive, isVisible)}
               >
-                <LayoutDashboard size={20} className={iconClass(isDashboardActive)} />
-                {isVisible && <span className="whitespace-nowrap">Dashboard</span>}
+                <LayoutDashboard
+                  size={20}
+                  className={iconClass(isDashboardActive)}
+                />
+                {isVisible && (
+                  <span className="whitespace-nowrap">Dashboard</span>
+                )}
               </Link>
             </li>
           </ul>
         </div>
 
-        {/* ── PROJECTS group ───────────────────────────────────── */}
+        {/*PROJECTS group*/}
         <div className="mb-6">
           <GroupLabel isVisible={isVisible} label="Projects" />
           <ul className="flex flex-col gap-1">
             <li>
               {/* Surveys accordion trigger */}
               <button
-                onClick={() => isVisible && setSurveySubmenuOpen((prev) => !prev)}
+                onClick={() =>
+                  isVisible && setSurveySubmenuOpen((prev) => !prev)
+                }
                 title={!isVisible ? "Surveys" : undefined}
                 className={navItemClass(isSurveySectionActive, isVisible, true)}
               >
-                <FolderOpen size={20} className={iconClass(isSurveySectionActive)} />
+                <FolderOpen
+                  size={20}
+                  className={iconClass(isSurveySectionActive)}
+                />
                 {isVisible && (
                   <>
-                    <span className="flex-1 whitespace-nowrap text-left">Surveys</span>
+                    <span className="flex-1 whitespace-nowrap text-left">
+                      Surveys
+                    </span>
                     <ChevronDown
                       size={16}
                       className={[
@@ -193,14 +201,16 @@ export const AppSidebar = () => {
                   {availableMonths.map((m) => {
                     const isMonthOpen = monthExpanded === m.key;
                     const monthSurveys = surveys.filter(
-                      (s) => parseSurveyMonth(s.startDate).key === m.key
+                      (s) => parseSurveyMonth(s.startDate).key === m.key,
                     );
                     return (
                       <div key={m.key}>
-                        {/* Month row — acts as a collapsible toggle */}
+                        {/*Month row toggle*/}
                         <button
                           onClick={() =>
-                            setMonthExpanded((prev) => (prev === m.key ? "" : m.key))
+                            setMonthExpanded((prev) =>
+                              prev === m.key ? "" : m.key,
+                            )
                           }
                           className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors uppercase tracking-wide"
                         >
@@ -214,12 +224,15 @@ export const AppSidebar = () => {
                           />
                         </button>
 
-                        {/* Survey links under this month — collapsed by default */}
+                        {/*Survey links under month*/}
                         {isMonthOpen && (
                           <ul className="flex flex-col gap-0.5 pl-3 pb-1">
                             {monthSurveys.map((s) => {
-                              const surveyPath = ROUTES.SURVEY_DETAIL(s.surveyName);
-                              const isSubActive = location.pathname === surveyPath;
+                              const surveyPath = ROUTES.SURVEY_DETAIL(
+                                s.surveyName,
+                              );
+                              const isSubActive =
+                                location.pathname === surveyPath;
                               return (
                                 <li key={s.surveyName}>
                                   <Link
@@ -247,7 +260,7 @@ export const AppSidebar = () => {
           </ul>
         </div>
 
-        {/* ── PEOPLE group ─────────────────────────────────────── */}
+        {/*PM group*/}
         <div className="mb-6">
           <GroupLabel isVisible={isVisible} label="People" />
           <ul className="flex flex-col gap-1">
@@ -260,7 +273,9 @@ export const AppSidebar = () => {
                 <Users size={20} className={iconClass(isPmSectionActive)} />
                 {isVisible && (
                   <>
-                    <span className="flex-1 whitespace-nowrap text-left">Project Managers</span>
+                    <span className="flex-1 whitespace-nowrap text-left">
+                      Project Managers
+                    </span>
                     <ChevronDown
                       size={16}
                       className={[
@@ -298,15 +313,18 @@ export const AppSidebar = () => {
             </li>
           </ul>
         </div>
-
       </nav>
     </aside>
   );
 };
 
-/* ── Small helpers to keep JSX clean ─────────────────────────── */
-
-function GroupLabel({ isVisible, label }: { isVisible: boolean; label: string }) {
+function GroupLabel({
+  isVisible,
+  label,
+}: {
+  isVisible: boolean;
+  label: string;
+}) {
   return (
     <div
       className={[
