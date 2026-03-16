@@ -1,11 +1,16 @@
 import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/clerk-react";
+import {
+  UserButton,
+  SignedIn,
+  SignedOut,
+  SignInButton,
+} from "@clerk/clerk-react";
 import { useSidebar } from "../../context/SidebarContext";
 import { ROUTES } from "../../constants/routes";
 
 export const AppHeader = () => {
-  const { isExpanded, isHovered, isMobileOpen, toggleSidebar } = useSidebar();
+  const { isMobileOpen, toggleSidebar } = useSidebar();
 
   const showClose = isMobileOpen;
 
@@ -21,7 +26,7 @@ export const AppHeader = () => {
           {showClose ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        {/* Mobile-only logo (sidebar is hidden on mobile so we show it in header) */}
+        {/* Mobile-only logo*/}
         <Link
           to={ROUTES.DASHBOARD}
           className="flex items-center gap-2 lg:hidden"
@@ -37,7 +42,7 @@ export const AppHeader = () => {
         </Link>
       </div>
 
-      {/* Right: auth */}
+      {/* Right: auth*/}
       <div className="flex items-center gap-3">
         <SignedOut>
           <SignInButton mode="modal">
