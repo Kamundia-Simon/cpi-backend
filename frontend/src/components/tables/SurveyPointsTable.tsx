@@ -53,6 +53,7 @@ export const SurveyPointsTable = ({
                 {renderSortIcon?.("cpi")}
               </div>
             </th>
+            <th className="p-3 text-left font-bold text-gray-700">Raw CPI</th>
             <th
               className="p-3 text-left font-bold text-gray-700 cursor-pointer hover:bg-gray-200"
               onClick={() => onSort?.("supplier")}
@@ -76,7 +77,7 @@ export const SurveyPointsTable = ({
         <tbody>
           {points.length === 0 ? (
             <tr>
-              <td colSpan={4} className="p-4 text-center text-gray-500">
+              <td colSpan={5} className="p-4 text-center text-gray-500">
                 No interviews found matching the selected filters.
               </td>
             </tr>
@@ -89,6 +90,9 @@ export const SurveyPointsTable = ({
                 <td className="p-3 font-medium text-gray-900">{point.pid}</td>
                 <td className="p-3 font-medium text-gray-900">
                   {formatCPI(point.cpi, point.supplier === "Fulcrum")}
+                </td>
+                <td className="p-3 font-medium text-gray-500">
+                  £{(point.cpi / 100).toFixed(2)}
                 </td>
                 <td className="p-3 font-medium text-gray-900">
                   {point.supplier}

@@ -2,13 +2,11 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  ChevronUp,
-  ChevronDown,
   PoundSterling,
   Users,
+  Download,
 } from "lucide-react";
 import { getSurveyPoints } from "../api";
-import { SurveyPointsTable } from "../components/tables/SurveyPointsTable";
 import SummaryTile from "../components/tiles/SummaryTile";
 
 interface Point {
@@ -18,8 +16,6 @@ interface Point {
   stime: string;
   suppname?: string | null;
 }
-
-type SortColumn = "cpi" | "supplier" | "stime";
 
 const SurveyDetail = () => {
   const navigate = useNavigate();
@@ -47,8 +43,6 @@ const SurveyDetail = () => {
   const [selectedSupplier, setSelectedSupplier] = useState<string>("All");
   const [cpiMin, setCpiMin] = useState<string>("0");
   const [cpiMax, setCpiMax] = useState<string>("");
-  const [sortBy, setSortBy] = useState<SortColumn | null>(null);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   //Fulcrum markup formula.
 
@@ -58,7 +52,36 @@ const SurveyDetail = () => {
     }
     return p.cpi / 100;
   };
-
+  const downloadCSV = () => {
+    const headers = [
+      "PID",
+      "CPI (Adj.)",
+      "Raw CPI",
+      "Supplier",
+      "Sub-supplier",
+      "Timestamp",
+    ];
+    const rows = filteredAndSorted.map((p) => [
+      p.pid,
+      computeDisplayCPI(p).toFixed(2),
+      (p.cpi / 100).toFixed(2),
+      p.supplier,
+      p.suppname ?? "",
+      p.stime,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
+      )
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${surveyName ?? "survey"}_points.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const [selectedSubSupplier, setSelectedSubSupplier] = useState<string>("All");
 
   // Sub-supplier options (only from Fulcrum points with a non-empty suppname)
@@ -86,28 +109,6 @@ const SurveyDetail = () => {
     [points],
   );
 
-  // Toggle sort direction or set new column
-  const handleSort = (column: SortColumn) => {
-    if (sortBy === column) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(column);
-      setSortOrder("asc");
-    }
-  };
-
-  // Render chevron icon
-  const renderSortIcon = (column: SortColumn) => {
-    if (sortBy !== column) {
-      return <ChevronUp size={14} className="text-gray-400" />;
-    }
-    return sortOrder === "asc" ? (
-      <ChevronUp size={14} className="text-blue-600" />
-    ) : (
-      <ChevronDown size={14} className="text-blue-600" />
-    );
-  };
-
   // Filter and sort points
   const filteredAndSorted = useMemo(() => {
     let result = [...points];
@@ -133,35 +134,8 @@ const SurveyDetail = () => {
       result = result.filter((p) => p.cpi <= max);
     }
 
-    // Sorting
-    if (sortBy) {
-      result.sort((a, b) => {
-        let cmp = 0;
-        switch (sortBy) {
-          case "cpi":
-            cmp = a.cpi - b.cpi;
-            break;
-          case "supplier":
-            cmp = a.supplier.localeCompare(b.supplier);
-            break;
-          case "stime":
-            cmp = new Date(a.stime).getTime() - new Date(b.stime).getTime();
-            break;
-        }
-        return sortOrder === "asc" ? cmp : -cmp;
-      });
-    }
-
     return result;
-  }, [
-    points,
-    selectedSupplier,
-    selectedSubSupplier,
-    cpiMin,
-    cpiMax,
-    sortBy,
-    sortOrder,
-  ]);
+  }, [points, selectedSupplier, selectedSubSupplier, cpiMin, cpiMax]);
 
   // Calculate metrics
   const totalCPI = useMemo(
@@ -221,8 +195,6 @@ const SurveyDetail = () => {
           icon={Users}
         />
       </div>
-
-      <h2 className="text-lg font-bold mb-4">Point Records</h2>
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
@@ -310,16 +282,18 @@ const SurveyDetail = () => {
         </div>
       </div>
 
-      <SurveyPointsTable
-        points={filteredAndSorted.map((p) => ({
-          ...p,
-          cpiDisplay: computeDisplayCPI(p),
-        }))}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        onSort={handleSort}
-        renderSortIcon={renderSortIcon}
-      />
+      <div className="flex items-center justify-between mt-4">
+        <p className="text-sm text-gray-500">
+          {filteredAndSorted.length} record{filteredAndSorted.length !== 1 ? "s" : ""} match current filters
+        </p>
+        <button
+          onClick={downloadCSV}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-semibold transition-colors"
+        >
+          <Download size={16} />
+          Export CSV
+        </button>
+      </div>
     </div>
   );
 };
