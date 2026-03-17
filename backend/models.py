@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from database import Base
+from datetime import datetime
 from pydantic import BaseModel, field_validator
-from helpers import serialize_datetime_to_iso
+from helpers import correct_excel_datetime, serialize_datetime_to_iso
 
 class PointsDb(Base):
     __tablename__ = "points"
@@ -52,4 +53,6 @@ class PointsResponse(BaseModel):
     @classmethod
     def validate_stime(cls, v):
         """Serialize datetime to ISO8601 string using helpers."""
+        if isinstance(v, datetime):
+            v = correct_excel_datetime(v)
         return serialize_datetime_to_iso(v)

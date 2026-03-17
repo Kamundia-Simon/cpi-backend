@@ -10,6 +10,10 @@ def serialize_datetime_to_iso(v):
         return v.isoformat()
     return str(v)
 
+def correct_excel_datetime(dt: datetime) -> datetime:
+    """Correct for Excel 1900 leap year bug"""
+    return dt - timedelta(days=2)
+
 PM_NAMES = {
     1: "Shah Ali",
     2: "Fatima Ally",

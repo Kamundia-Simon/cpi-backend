@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from sqlalchemy import func
 from models import PMSummaryResponse, PMResponse, SurveyResponse, PointsDb
-from helpers import PM_NAMES
+from helpers import PM_NAMES, correct_excel_datetime
 router = APIRouter(prefix="/api/pms", tags=["PMs"])
 
 @router.get("/{pmId}/surveys", response_model=list[SurveyResponse])
@@ -33,7 +33,7 @@ def get_pm_surveys(
                 pm=PM_NAMES.get(row.pmId, f"Unknown PM {row.pmId}"),
                 totalPaid=float(row.totalPaid),
                 totalCompletes=row.totalCompletes,
-                startDate=row.startDate.strftime("%d %b %Y %H:%M"),
+                startDate=correct_excel_datetime(row.startDate).strftime("%d %b %Y %H:%M"),
             )
         )
 
