@@ -28,7 +28,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       >
         <AppHeader />
 
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 flex flex-col p-4 md:p-6">{children}</main>
 
         <footer className="px-4 py-4 md:px-6 border-t border-gray-100">
           <p className="text-center text-sm text-gray-400">
