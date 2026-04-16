@@ -18,7 +18,6 @@ PM_NAMES = {
     1: "Shah Ali",
     2: "Fatima Ally",
     3: "Rose Yang",
-    4: "Demo PM 4",
 }
 
 SUPPLIER_NAMES = {
@@ -30,4 +29,5 @@ SUPPLIER_NAMES = {
     30: "Toluna",
     17: "DataSpring",
     24: "Borderless",
+    5: "ClientSample",
 }
