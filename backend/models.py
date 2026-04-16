@@ -56,3 +56,10 @@ class PointsResponse(BaseModel):
         if isinstance(v, datetime):
             v = correct_excel_datetime(v)
         return serialize_datetime_to_iso(v)
+
+# GET /api/analytics/supplier-spend
+class SupplierSpendRow(BaseModel):
+    month: str
+    supplier: str
+    spend: float
+    completes: int

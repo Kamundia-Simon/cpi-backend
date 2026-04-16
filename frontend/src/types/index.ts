@@ -43,3 +43,10 @@ export interface TrendDataPoint {
   date: Date;
   amount: number;
 }
+// Supplier spend data specs
+export interface SupplierSpendRow {
+  month: string;
+  supplier: string;
+  spend: number;
+  completes: number;
+}
