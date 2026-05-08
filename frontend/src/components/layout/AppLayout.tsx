@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { Backdrop } from "./Backdrop";
 import { useSidebar } from "../../context/SidebarContext";
+import { setApiToken } from "../../api";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -10,6 +13,28 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { isExpanded, isHovered } = useSidebar();
+  const { getToken } = useAuth();
+  const [tokenReady, setTokenReady] = useState(false);
+
+  useEffect(() => {
+    getToken()
+      .then((token) => {
+        setApiToken(token);
+        setTokenReady(true);
+      })
+      .catch(() => {
+        setApiToken(null);
+        setTokenReady(true);
+      });
+  }, [getToken]);
+
+  if (!tokenReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-400 text-sm">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
