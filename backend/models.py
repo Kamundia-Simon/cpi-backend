@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Float
 from database import Base
 from datetime import datetime
 from pydantic import BaseModel, field_validator
@@ -14,8 +14,20 @@ class PointsDb(Base):
     project = Column("project", String(255), nullable=False, index=True)
     supplier = Column("supplier", Integer, nullable=False)
     pm = Column("pm", Integer, nullable=False, index=True)
-    suppname = Column("suppname", String(255), nullable=True)
+    surveyid = Column("surveyid", Integer, nullable=True, index=True)
+    surveytype = Column("surveytype", String(255), nullable=True)
+    target = Column("target", Integer, nullable=True)
+    status = Column("status", Integer, nullable=False, default=1)
 
+class SurveyMeta(Base):
+    __tablename__ = "meta"
+
+    surveyid          = Column(Integer, primary_key=True)
+    description = Column(String(500))
+    client            = Column(String(255))
+    last_ir           = Column(Float)
+    irtime     = Column(DateTime)
+    
 # GET /api/pms
 class PMResponse(BaseModel):
     id: int
@@ -39,6 +51,14 @@ class SurveyResponse(BaseModel):
     totalPaid: float
     totalCompletes: int
     startDate: str
+    client:            str | None = None
+    askia_description: str | None = None
+    surveytype:        str | None = None
+    target:            int | None = None
+    ir:                float | None = None
+    suppliers:         list[str] = []
+    
+
     
 # GET /api/surveys/{surveyName}/points
 class PointsResponse(BaseModel):
@@ -63,3 +83,15 @@ class SupplierSpendRow(BaseModel):
     supplier: str
     spend: float
     completes: int
+    
+# POST /api/surveys/{surveyName}/reconcile — request body
+class ReconcilePayload(BaseModel):
+    pids: list[str]
+
+# POST /api/surveys/{surveyName}/reconcile
+class ReconcileResponse(BaseModel):
+    project: str
+    total_in_db: int
+    total_usable: int
+    total_marked_unusable: int
+    pids_not_found: list[str]
