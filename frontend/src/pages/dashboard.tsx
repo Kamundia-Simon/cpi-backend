@@ -11,7 +11,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getSurveys, getPMs, getSupplierSpend } from "../api";
+import { getSurveys, getPMs, getSupplierSpend, syncSurveyMeta } from "../api";
 import type { SupplierSpendRow } from "../types";
 import SupplierAnalytics from "../components/charts/SupAnalysis";
 
@@ -34,25 +34,17 @@ const Dashboard = () => {
     "surveys",
   );
   const [analyticsData, setAnalyticsData] = useState<SupplierSpendRow[]>([]);
-
-  // Fetch data from API
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [surveysData, pmsData] = await Promise.all([
-          getSurveys(),
-          getPMs(),
-        ]);
-        setSurveys(surveysData);
-        setPms(pmsData);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const getMonthRange = (
+    monthStr: string,
+  ): { start: string; end: string } | null => {
+    if (monthStr === "All") return null;
+    const [year, month] = monthStr.split("-").map(Number);
+    const start = `${year}-${String(month).padStart(2, "0")}-01`;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const end = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+    return { start, end };
+  };
 
   useEffect(() => {
     getSupplierSpend()
@@ -69,15 +61,22 @@ const Dashboard = () => {
   const [startDateFrom, setStartDateFrom] = useState<string>("");
   const [startDateTo, setStartDateTo] = useState<string>("");
 
-  const uniqueMonths = useMemo(
-    () => [
-      "All",
-      ...Array.from(
-        new Set(surveys.map((s) => extractMonth(s.startDate))),
-      ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime()),
-    ],
-    [surveys],
-  );
+  const monthOptions = useMemo(() => {
+    const opts: { value: string; label: string }[] = [
+      { value: "All", label: "All Months" },
+    ];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("en-GB", {
+        month: "short",
+        year: "numeric",
+      });
+      opts.push({ value, label });
+    }
+    return opts;
+  }, []);
 
   // Toggle sort direction or set new column
   const handleSort = (column: SortColumn) => {
@@ -89,6 +88,30 @@ const Dashboard = () => {
     }
   };
 
+  useEffect(() => {
+    syncSurveyMeta().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const range = getMonthRange(monthFilter);
+        const [surveysData, pmsData] = await Promise.all([
+          getSurveys(range?.start, range?.end),
+          getPMs(),
+        ]);
+        setSurveys(surveysData);
+        setPms(pmsData);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  
+  }, [monthFilter]);
   // Render chevron icon
   const renderSortIcon = (column: SortColumn) => {
     if (sortBy !== column) {
@@ -118,9 +141,9 @@ const Dashboard = () => {
     }
 
     // Month filter
-    if (monthFilter !== "All") {
-      result = result.filter((s) => extractMonth(s.startDate) === monthFilter);
-    }
+    // if (monthFilter !== "All") {
+    //   result = result.filter((s) => extractMonth(s.startDate) === monthFilter);
+    //}
 
     // Date range filter
     if (startDateFrom) {
@@ -285,9 +308,9 @@ const Dashboard = () => {
                 onChange={(e) => setMonthFilter(e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {uniqueMonths.map((month) => (
-                  <option key={month} value={month}>
-                    {month === "All" ? "All Months" : month}
+                {monthOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </select>
@@ -354,6 +377,8 @@ const Dashboard = () => {
             sortOrder={sortOrder}
             onSort={handleSort}
             renderSortIcon={renderSortIcon}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
           />
         </>
       )}
