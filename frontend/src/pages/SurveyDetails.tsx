@@ -1,11 +1,15 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 import {
   ArrowLeft,
   PoundSterling,
   Users,
   Download,
   TrendingUp,
+  Upload,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { getSurveyPoints } from "../api";
 import SummaryTile from "../components/tiles/SummaryTile";
@@ -22,6 +26,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import * as XLSX from "xlsx";
 
 interface Point {
   pid: string;
@@ -58,6 +63,18 @@ const SurveyDetail = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>("All");
   const [cpiMin, setCpiMin] = useState<string>("0");
   const [cpiMax, setCpiMax] = useState<string>("");
+
+  const [reconcileFile, setReconcileFile] = useState<File | null>(null);
+  const [reconcileLoading, setReconcileLoading] = useState(false);
+  const [reconcileResult, setReconcileResult] = useState<{
+    total_in_db: number;
+    total_usable: number;
+    total_marked_unusable: number;
+    pids_not_found: string[];
+  } | null>(null);
+  const [reconcileError, setReconcileError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   //Fulcrum markup formula.
 
@@ -98,6 +115,74 @@ const SurveyDetail = () => {
     URL.revokeObjectURL(url);
   };
   const [selectedSubSupplier, setSelectedSubSupplier] = useState<string>("All");
+
+  const { getToken } = useAuth();
+
+  const handleReconcile = async () => {
+    if (!reconcileFile) return;
+
+    let pids: string[] = [];
+
+    try {
+      if (reconcileFile.name.endsWith(".xlsx")) {
+        // Binary xlsx parsing via SheetJS
+        const arrayBuffer = await reconcileFile.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        // First column, skip header row
+        pids = rows
+          .slice(1)
+          .map((row) => String(row[0] ?? "").trim())
+          .filter(Boolean);
+      } else {
+        // CSV fallback
+        const text = await reconcileFile.text();
+        pids = text
+          .split("\n")
+          .map((line) => line.split(",")[0].replace(/"/g, "").trim())
+          .filter(Boolean)
+          .slice(1);
+      }
+    } catch {
+      setReconcileError(
+        "Could not read file — ensure it is a valid .xlsx or .csv",
+      );
+      return;
+    }
+
+    if (pids.length === 0) {
+      setReconcileError("No PIDs found in the first column of the file");
+      return;
+    }
+
+    setReconcileLoading(true);
+    setReconcileError(null);
+
+    try {
+      const token = await getToken();
+      const res = await fetch(
+        `http://localhost:8000/api/surveys/${encodeURIComponent(surveyName ?? "")}/reconcile`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ pids }),
+        },
+      );
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setReconcileResult(data);
+      const updated = await getSurveyPoints(surveyName ?? "");
+      setPoints(updated);
+    } catch (err: any) {
+      setReconcileError(err.message);
+    } finally {
+      setReconcileLoading(false);
+    }
+  };
 
   // Sub-supplier options (only from Fulcrum points with a non-empty suppname)
   const uniqueSubSuppliers = useMemo(
@@ -278,6 +363,7 @@ const SurveyDetail = () => {
     Toluna: "#84cc16",
     DataSpring: "#f59e0b",
     Borderless: "#ec4899",
+    LiquidOpinions: "#a855f7",
   };
   const DONUT_FALLBACK = [
     "#10b981",
@@ -326,27 +412,31 @@ const SurveyDetail = () => {
       </div>
 
       {/* Summary tiles */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-4">
         <SummaryTile
           title="Total on Project"
           value={`£${totalCPI.toFixed(2)}`}
           icon={PoundSterling}
+          compact
         />
         <SummaryTile
-          title="Average"
+          title="Average CPI"
           value={`£${parseFloat(averageCPI).toFixed(2)}`}
           icon={PoundSterling}
+          compact
         />
         <SummaryTile
-          title="Number of Completes"
+          title="Completes"
           value={totalCompletes.toString()}
           icon={Users}
+          compact
         />
       </div>
-
       {/* Filters + Export — unified card */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
-        <div className="flex items-end gap-4 mb-4">
+      <div className="bg-white px-4 pt-3 pb-2 rounded-lg border border-gray-200 mb-4">
+        <div className="flex items-end gap-3 mb-2">
+          {" "}
+          {/* was gap-4 mb-4 */}
           {/* Supplier */}
           <div className="flex-1">
             <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -355,7 +445,7 @@ const SurveyDetail = () => {
             <select
               value={selectedSupplier}
               onChange={(e) => setSelectedSupplier(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {uniqueSuppliers.map((s) => (
                 <option key={s} value={s}>
@@ -364,7 +454,6 @@ const SurveyDetail = () => {
               ))}
             </select>
           </div>
-
           {/* Sub-supplier (Fulcrum only) */}
           {hasFulcrumSubSuppliers && (
             <div className="flex-1">
@@ -374,7 +463,7 @@ const SurveyDetail = () => {
               <select
                 value={selectedSubSupplier}
                 onChange={(e) => setSelectedSubSupplier(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {uniqueSubSuppliers.map((s) => (
                   <option key={s} value={s}>
@@ -384,7 +473,6 @@ const SurveyDetail = () => {
               </select>
             </div>
           )}
-
           {/* Month */}
           <div className="flex-1">
             <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -393,7 +481,7 @@ const SurveyDetail = () => {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {uniqueMonths.map((m) => (
                 <option key={m} value={m}>
@@ -402,7 +490,6 @@ const SurveyDetail = () => {
               ))}
             </select>
           </div>
-
           {/* CPI Min */}
           <div className="flex-1">
             <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -414,10 +501,9 @@ const SurveyDetail = () => {
               step="0.05"
               value={cpiMin}
               onChange={(e) => setCpiMin(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-
           {/* CPI Max */}
           <div className="flex-1">
             <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -429,7 +515,7 @@ const SurveyDetail = () => {
               step="0.05"
               value={cpiMax}
               onChange={(e) => setCpiMax(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
@@ -462,6 +548,125 @@ const SurveyDetail = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Reconciliation */}
+      <div className="bg-white rounded-lg border border-gray-200 mb-4 px-4 py-3">
+        <div className="flex items-center gap-4">
+          {/* Icon + label */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="p-1 bg-blue-50 rounded-md">
+              <Upload size={13} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-700">
+                Reconciliation
+              </p>
+              <p className="text-xs text-gray-400">Upload usable PIDs</p>
+            </div>
+          </div>
+
+          {/* Drag and drop zone */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file) {
+                setReconcileFile(file);
+                setReconcileResult(null);
+                setReconcileError(null);
+              }
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 border-2 border-dashed rounded-md px-4 py-2 cursor-pointer transition-colors text-xs
+        ${
+          isDragging
+            ? "border-blue-400 bg-blue-50 text-blue-600"
+            : "border-gray-200 hover:border-blue-300 hover:bg-gray-50 text-gray-400"
+        }`}
+          >
+            <Upload size={12} />
+            {reconcileFile ? (
+              <span className="text-gray-700 font-medium">
+                {reconcileFile.name}
+              </span>
+            ) : (
+              <span>Drop .xlsx or .csv here, or click to browse</span>
+            )}
+          </div>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx"
+            className="hidden"
+            onChange={(e) => {
+              setReconcileResult(null);
+              setReconcileError(null);
+              setReconcileFile(e.target.files?.[0] ?? null);
+            }}
+          />
+
+          {/* Apply button */}
+          <button
+            onClick={handleReconcile}
+            disabled={!reconcileFile || reconcileLoading}
+            className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300
+        text-white rounded-md text-xs font-semibold transition-colors"
+          >
+            {reconcileLoading ? "Processing..." : "Apply"}
+          </button>
+        </div>
+
+        {/* Result */}
+        {reconcileResult && (
+          <div className="mt-3 p-2.5 bg-green-50 border border-green-200 rounded-md text-xs">
+            <div className="flex items-center gap-2 text-green-700 font-semibold mb-1">
+              <CheckCircle size={12} /> Reconciliation complete
+            </div>
+            <div className="flex gap-6 text-gray-600">
+              <span>
+                Total in DB: <strong>{reconcileResult.total_in_db}</strong>
+              </span>
+              <span>
+                Usable:{" "}
+                <strong className="text-green-600">
+                  {reconcileResult.total_usable}
+                </strong>
+              </span>
+              <span>
+                Unusable:{" "}
+                <strong className="text-red-500">
+                  {reconcileResult.total_marked_unusable}
+                </strong>
+              </span>
+            </div>
+            {reconcileResult.pids_not_found.length > 0 && (
+              <p className="mt-1.5 text-amber-600">
+                ⚠ {reconcileResult.pids_not_found.length} PID(s) not found in DB
+                — check file is for this survey.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Error */}
+        {reconcileError && (
+          <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-md text-xs flex items-center gap-2 text-red-600">
+            <AlertCircle size={12} /> {reconcileError}
+          </div>
+        )}
       </div>
 
       {/* Charts */}
@@ -577,9 +782,9 @@ const SurveyDetail = () => {
                     <Pie
                       data={supplierShare}
                       cx="50%"
-                      cy="42%"
-                      innerRadius={80}
-                      outerRadius={130}
+                      cy="55%"
+                      innerRadius={70}
+                      outerRadius={110}
                       paddingAngle={3}
                       dataKey="value"
                     >

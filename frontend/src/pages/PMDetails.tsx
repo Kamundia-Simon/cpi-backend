@@ -14,13 +14,20 @@ import SummaryTile from "../components/tiles/SummaryTile";
 
 // Helpers
 const parseDate = (val: string): Date => new Date(val);
-const extractMonth = (val: string): string => {
-  const dt = new Date(val);
-  return dt.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
-};
 
 // Sortable column keys for the PM table
 type SortColumn = "surveyName" | "totalPaid" | "totalCompletes" | "startDate";
+const getMonthRange = (
+  monthStr: string,
+): { start: string; end: string } | null => {
+  if (monthStr === "All") return null;
+  const [year, month] = monthStr.split("-").map(Number);
+  const start = `${year}-${String(month).padStart(2, "0")}-01`;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const end = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  return { start, end };
+};
 
 const PMDetail = () => {
   const { pmId } = useParams();
@@ -39,10 +46,33 @@ const PMDetail = () => {
   const [startDateFrom, setStartDateFrom] = useState<string>("");
   const [startDateTo, setStartDateTo] = useState<string>("");
 
+  const monthOptions = useMemo(() => {
+    const opts: { value: string; label: string }[] = [
+      { value: "All", label: "All Months" },
+    ];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("en-GB", {
+        month: "short",
+        year: "numeric",
+      });
+      opts.push({ value, label });
+    }
+    return opts;
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const surveysData = await getPMSurveys(pmIdNum);
+        setLoading(true);
+        const range = getMonthRange(monthFilter);
+        const surveysData = await getPMSurveys(
+          pmIdNum,
+          range?.start,
+          range?.end,
+        );
         setProjects(surveysData);
         if (surveysData.length > 0) {
           setPmName(surveysData[0].pm);
@@ -54,18 +84,7 @@ const PMDetail = () => {
       }
     };
     fetchData();
-  }, [pmIdNum]);
-
-  // Get unique months for filters
-  const uniqueMonths = useMemo(
-    () => [
-      "All",
-      ...Array.from(
-        new Set(projects.map((p) => extractMonth(p.startDate))),
-      ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime()),
-    ],
-    [projects],
-  );
+  }, [pmIdNum, monthFilter]);
 
   // Toggle sort direction or set new column
   const handleSort = (column: SortColumn) => {
@@ -100,11 +119,6 @@ const PMDetail = () => {
       );
     }
 
-    // Month filter
-    if (monthFilter !== "All") {
-      result = result.filter((p) => extractMonth(p.startDate) === monthFilter);
-    }
-
     // Date range filter
     if (startDateFrom) {
       const from = new Date(startDateFrom).getTime();
@@ -137,22 +151,11 @@ const PMDetail = () => {
       }
       return sortOrder === "asc" ? cmp : -cmp;
     });
-  }, [
-    projects,
-    sortBy,
-    sortOrder,
-    searchQuery,
-    monthFilter,
-    startDateFrom,
-    startDateTo,
-  ]);
+  }, [projects, sortBy, sortOrder, searchQuery, startDateFrom, startDateTo]);
 
   // Dynamic summary calcs based on filters
   const summaryMetrics = useMemo(() => {
-    const totalPaid = sorted.reduce(
-      (sum, p) => sum + p.totalPaid,
-      0,
-    );
+    const totalPaid = sorted.reduce((sum, p) => sum + p.totalPaid, 0);
     const totalProjects = sorted.length;
     const avgPerProject = totalProjects > 0 ? totalPaid / totalProjects : 0;
 
@@ -236,9 +239,9 @@ const PMDetail = () => {
               onChange={(e) => setMonthFilter(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {uniqueMonths.map((month) => (
-                <option key={month} value={month}>
-                  {month === "All" ? "All Months" : month}
+              {monthOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>

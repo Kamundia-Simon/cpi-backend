@@ -29,6 +29,7 @@ const SUPPLIER_COLORS: Record<string, string> = {
   Toluna: "#84cc16",
   DataSpring: "#f59e0b",
   Borderless: "#ec4899",
+  LiquidOpinions: "#a855f7",
 };
 const FALLBACK_COLORS = ["#6b7280", "#d1d5db"];
 

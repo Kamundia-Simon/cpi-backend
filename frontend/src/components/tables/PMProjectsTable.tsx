@@ -80,11 +80,15 @@ export const PMProjectsTable = ({
                   {project.surveyName}
                 </Link>
               </td>
-              <td className="p-4 text-sm font-medium text-gray-700">{project.totalPaid}</td>
+              <td className="p-4 text-sm font-medium text-gray-700">
+                £{Number(project.totalPaid).toFixed(2)}
+              </td>
               <td className="p-4 text-sm font-medium text-gray-700">
                 {project.totalCompletes}
               </td>
-              <td className="p-4 text-sm font-medium text-gray-700">{project.startDate}</td>
+              <td className="p-4 text-sm font-medium text-gray-700">
+                {project.startDate}
+              </td>
             </tr>
           ))}
         </tbody>

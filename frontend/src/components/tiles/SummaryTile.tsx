@@ -4,6 +4,7 @@ interface SummaryTileProps {
   value: string;
   subtitle?: string;
   icon: LucideIcon;
+  compact?: boolean;
 }
 
 const SummaryTile = ({
@@ -11,15 +12,29 @@ const SummaryTile = ({
   value,
   subtitle,
   icon: Icon,
+  compact = false,
 }: SummaryTileProps) => {
   return (
-    <div className="bg-white rounded-lg border p-6 shadow-sm hover:shadow-md hover:border-black-300 transition-all duration-200 cursor-default">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-gray-500">{title}</p>
-        <Icon className="h-10 w-10 text-black-400" />
+    <div
+      className={`bg-white rounded-lg border shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-default flex items-center justify-between
+      ${compact ? "px-5 py-3" : "p-6"}`}
+    >
+      <div>
+        <p
+          className={`font-semibold text-gray-500 ${compact ? "text-xs uppercase tracking-wide" : "text-sm"}`}
+        >
+          {title}
+        </p>
+        <p
+          className={`font-bold mt-1 ${compact ? "text-lg" : "text-3xl mt-2"}`}
+        >
+          {value}
+        </p>
+        {subtitle && (
+          <p className="text-xs font-medium text-gray-400 mt-0.5">{subtitle}</p>
+        )}
       </div>
-      <p className="text-3xl font-bold mt-2">{value}</p>
-      {subtitle && <p className="text-sm font-medium text-gray-400 mt-1">{subtitle}</p>}
+      <Icon className={`text-gray-300 ${compact ? "h-6 w-6" : "h-10 w-10"}`} />
     </div>
   );
 };
