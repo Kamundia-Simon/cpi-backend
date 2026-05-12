@@ -18,7 +18,6 @@ PM_NAMES = {
     1: "Shah Ali",
     2: "Fatima Ally",
     3: "Rose Yang",
-    4: "Test PM"
 }
 
 SUPPLIER_NAMES = {
