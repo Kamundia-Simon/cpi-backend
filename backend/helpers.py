@@ -22,12 +22,12 @@ PM_NAMES = {
 
 SUPPLIER_NAMES = {
     16: "Cint",
-    25: "PureSpectrum",
-    23: "Fulcrum",
+    25: "PL2",
+    23: "PL1",
     15: "Nebu",
     13: "Dynata",
     30: "Toluna",
     17: "DataSpring",
     24: "Borderless",
-    5: "LiquidOpinions",
+    5: "LO",
 }
