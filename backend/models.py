@@ -43,6 +43,12 @@ class PMSummaryResponse(BaseModel):
     totalAmount: float
     avgPerProject: float
     totalProjects: int
+
+# GET /api/surveys — supplier breakdown per row
+class SupplierBreakdownItem(BaseModel):
+    supplier: str
+    completes: int
+    spend: float
     
 # GET /api/surveys
 class SurveyResponse(BaseModel):
@@ -57,9 +63,8 @@ class SurveyResponse(BaseModel):
     target:            int | None = None
     ir:                float | None = None
     suppliers:         list[str] = []
-    
-
-    
+    supplier_breakdown: list[SupplierBreakdownItem] = [] 
+   
 # GET /api/surveys/{surveyName}/points
 class PointsResponse(BaseModel):
     id: int
