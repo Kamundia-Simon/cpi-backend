@@ -59,7 +59,7 @@ def get_pm_surveys(
                 totalCompletes=row.totalCompletes,
                 startDate=correct_excel_datetime(row.startDate).strftime("%d %b %Y %H:%M"),
                 client=row.client,
-                askiaDescription=row.askia_description,
+                askia_description=row.askia_description,
             )
         )
 
