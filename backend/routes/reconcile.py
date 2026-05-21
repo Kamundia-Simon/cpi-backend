@@ -22,7 +22,7 @@ def reconcile_survey(
     usable_set = set(payload.pids)
 
     db_pids = {p.pid for p in all_points}
-    usable_set = set(usable_pids)
+    usable_set = set(payload.pids)
     pids_not_found = list(usable_set - db_pids)
     
     try:
