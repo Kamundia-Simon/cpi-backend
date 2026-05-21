@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from database import get_db
 from sqlalchemy import func
-from models import PMSummaryResponse, PMResponse, SurveyResponse, PointsDb
+from models import PMSummaryResponse, PMResponse, SurveyResponse, PointsDb, SurveyMeta
 from helpers import PM_NAMES, correct_excel_datetime
 from typing import Optional
 from datetime import datetime, timedelta
@@ -32,7 +32,10 @@ def get_pm_surveys(
             func.sum(fulcrum_spend_expr()).label("totalPaid"),
             func.count().label("totalCompletes"),
             func.min(PointsDb.stime).label("startDate"),
+            func.max(SurveyMeta.client).label("client"),
+            func.max(SurveyMeta.description).label("askia_description"),
         )
+        .outerjoin(SurveyMeta, PointsDb.surveyid == SurveyMeta.surveyid)
         .filter(PointsDb.pm == pmId, PointsDb.status == 1)
     )
     
@@ -55,6 +58,8 @@ def get_pm_surveys(
                 totalPaid=float(row.totalPaid),
                 totalCompletes=row.totalCompletes,
                 startDate=correct_excel_datetime(row.startDate).strftime("%d %b %Y %H:%M"),
+                client=row.client,
+                askiaDescription=row.askia_description,
             )
         )
 
