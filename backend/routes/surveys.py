@@ -34,8 +34,21 @@ def get_surveys(
         func.min(PointsDb.stime).label("startDate"),
         func.max(SurveyMeta.client).label("client"),
         func.max(SurveyMeta.description).label("askia_description"),
-        func.max(PointsDb.surveytype).label("surveytype"),
-        func.max(PointsDb.target).label("target"),
+        func.coalesce(
+        func.max(func.nullif(PointsDb.target, 2000)),
+        2000
+        ).label("target"),
+        func.coalesce(
+            func.max(
+                func.IF(
+                    PointsDb.surveytype.notin_(["Nat Rep/Gen-Pop"]),
+                    PointsDb.surveytype,
+                    None
+                    )
+                ),
+            func.max(PointsDb.surveytype),
+            "Nat Rep/Gen-Pop"
+            ).label("surveytype"),
         func.max(SurveyMeta.last_ir).label("ir"),
         func.GROUP_CONCAT(func.DISTINCT(PointsDb.supplier)).label("supplier_ids"),
     ).outerjoin(
