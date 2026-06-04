@@ -28,6 +28,16 @@ class SurveyMeta(Base):
     last_ir           = Column(Float)
     irtime     = Column(DateTime)
     
+class ReconcileHistory(Base):
+    __tablename__ = "reconciliation_history"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    surveyid = Column(Integer, nullable=False, index=True)
+    reconciled_at = Column(DateTime, nullable=False)
+    total_ids = Column(Integer, nullable=False)
+    usable = Column(Integer, nullable=False)
+    unusable = Column(Integer, nullable=False, default=0)
+    not_found = Column(Integer, nullable=False, default=0)
+    
 # GET /api/pms
 class PMResponse(BaseModel):
     id: int
@@ -100,3 +110,11 @@ class ReconcileResponse(BaseModel):
     total_usable: int
     total_marked_unusable: int
     pids_not_found: list[str]
+    
+class ReconcileHistoryResponse(BaseModel):
+    surveyid: int
+    reconciled_at: str
+    total_ids: int
+    usable: int
+    unusable: int
+    not_found: int

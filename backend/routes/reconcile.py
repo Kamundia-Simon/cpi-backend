@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models import PointsDb, ReconcileResponse, ReconcilePayload
+from models import PointsDb, ReconcileResponse, ReconcilePayload, ReconcileHistory, ReconcileHistoryResponse
+from datetime import datetime
 
 router = APIRouter()
 
@@ -44,11 +45,45 @@ def reconcile_survey(
         PointsDb.project == surveyName,
         PointsDb.status == 1
     ).count()
+    
+    total_marked_unusable = len(all_points) - usable
+
+    history_entry = ReconcileHistory(
+        surveyid=surveyName,
+        reconciled_at=datetime.utcnow(),
+        total=len(all_points),
+        usable=total_usable,
+        unusable=total_marked_unusable,
+        not_found=len(not_found),
+    )
+    db.add(history_entry)
+    db.commit()
 
     return ReconcileResponse(
         project=surveyName,
         total_in_db=len(all_points),
         total_usable=total_usable,
-        total_marked_unusable=len(all_points) - total_usable,
+        total_marked_unusable=total_marked_unusable,
         pids_not_found=pids_not_found,
     )
+    
+@router.get("/api/surveys/{surveyName}/reconcile/history", response_model=list[ReconcileHistoryResponse])
+def get_reconcile_history(surveyName: str, db: Session = Depends(get_db)):
+    entries = (
+        db.query(ReconcileHistory)
+        .filter(ReconcileHistory.surveyid == surveyName)
+        .order_by(ReconcileHistory.reconciled_at.desc())
+        .all()
+    )
+    return [
+        ReconcileHistoryResponse(
+            id=e.id,
+            surveyid=e.surveyid,
+            reconciled_at=e.reconciled_at.isoformat(),
+            total_in_db=e.total_in_db,
+            total_usable=e.total_usable,
+            total_marked_unusable=e.total_marked_unusable,
+            pids_not_found=e.pids_not_found,
+        )
+        for e in entries
+    ]
