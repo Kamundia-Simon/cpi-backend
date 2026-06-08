@@ -20,7 +20,6 @@ def reconcile_survey(
     if not all_points:
         raise HTTPException(status_code=404, detail="Survey not found")
     
-    usable_set = set(payload.pids)
 
     db_pids = {p.pid for p in all_points}
     usable_set = set(payload.pids)
@@ -46,15 +45,15 @@ def reconcile_survey(
         PointsDb.status == 1
     ).count()
     
-    total_marked_unusable = len(all_points) - usable
+    total_marked_unusable = len(all_points) - total_usable
 
     history_entry = ReconcileHistory(
-        surveyid=surveyName,
+        surveyid=surveyName, 
         reconciled_at=datetime.utcnow(),
-        total=len(all_points),
+        total_ids=len(all_points),
         usable=total_usable,
         unusable=total_marked_unusable,
-        not_found=len(not_found),
+        not_found=len(pids_not_found),
     )
     db.add(history_entry)
     db.commit()
@@ -80,10 +79,10 @@ def get_reconcile_history(surveyName: str, db: Session = Depends(get_db)):
             id=e.id,
             surveyid=e.surveyid,
             reconciled_at=e.reconciled_at.isoformat(),
-            total_in_db=e.total_in_db,
-            total_usable=e.total_usable,
-            total_marked_unusable=e.total_marked_unusable,
-            pids_not_found=e.pids_not_found,
+            total_ids=e.total_ids,
+            usable=e.usable,
+            unusable=e.unusable,
+            not_found=e.not_found,
         )
         for e in entries
     ]
