@@ -29,9 +29,9 @@ class SurveyMeta(Base):
     irtime     = Column(DateTime)
     
 class ReconcileHistory(Base):
-    __tablename__ = "reconciliation_history"
+    __tablename__ = "reconcile_history"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    surveyid = Column(Integer, nullable=False, index=True)
+    surveyid = Column(String(255), nullable=False, index=True)
     reconciled_at = Column(DateTime, nullable=False)
     total_ids = Column(Integer, nullable=False)
     usable = Column(Integer, nullable=False)
@@ -112,7 +112,8 @@ class ReconcileResponse(BaseModel):
     pids_not_found: list[str]
     
 class ReconcileHistoryResponse(BaseModel):
-    surveyid: int
+    id: int
+    surveyid: str
     reconciled_at: str
     total_ids: int
     usable: int
