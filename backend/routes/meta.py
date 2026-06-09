@@ -5,7 +5,7 @@ from sqlalchemy import func
 from database import get_db
 from models import PointsDb, SurveyMeta
 from services.quotas import fetch_all_surveys, fetch_finalstatus, calculate_ir, parse_client
-
+from sqlalchemy.dialects.mysql import insert as mysql_insert
 
 router = APIRouter(prefix="/api/meta", tags=["Meta"])
 
@@ -18,10 +18,6 @@ def sync_survey_meta(db: Session = Depends(get_db)):
             .filter(PointsDb.surveyid.isnot(None))
             .distinct()
             .all()
-    }
-
-    existing_meta: dict[int, SurveyMeta] = {
-        m.surveyid: m for m in db.query(SurveyMeta).all()
     }
 
     askia_by_name: dict[str, dict] = {}
@@ -43,7 +39,6 @@ def sync_survey_meta(db: Session = Depends(get_db)):
         matched_askia = bool(askia_info)
         askia_api_id = askia_info.get("Id")
         desc = askia_info.get("Description", "")
-        meta = existing_meta.get(numeric_id)
 
         fs = None
         ir_value = None
@@ -55,23 +50,20 @@ def sync_survey_meta(db: Session = Depends(get_db)):
         except Exception as e:
             fs_error = str(e)
 
-        if meta:
-            if not meta.description and desc:
-                meta.description = desc
-                meta.client = parse_client(desc)
-            if ir_value is not None:
-                meta.last_ir = ir_value
-                meta.irtime = datetime.utcnow()
-        
-        else:
-            new_meta = SurveyMeta(
-                surveyid=numeric_id,
-                description=desc or None,
-                client=parse_client(desc) if desc else None,
-                last_ir=ir_value,
-                irtime=datetime.utcnow() if ir_value is not None else None,
-            )
-            db.add(new_meta)
+        stmt = mysql_insert(SurveyMeta).values(
+            surveyid=numeric_id,
+            description=desc or None,
+            client=parse_client(desc) if desc else None,
+            last_ir=ir_value,
+            irtime=datetime.utcnow() if ir_value is not None else None,
+        ).on_duplicate_key_update(
+            description=func.coalesce(SurveyMeta.description, desc or None),
+            client=func.coalesce(SurveyMeta.client, parse_client(desc) if desc else None),
+            last_ir=ir_value if ir_value is not None else SurveyMeta.last_ir,
+            irtime=datetime.utcnow() if ir_value is not None else SurveyMeta.irtime,
+        )
+        db.execute(stmt)
+        db.commit()
 
         debug_per_survey.append({
             "project": project_name,
@@ -85,7 +77,6 @@ def sync_survey_meta(db: Session = Depends(get_db)):
             "fs_error": fs_error,
         })
 
-    db.commit()
     return {
         "total": len(id_to_name),
         "askia_fetched": askia_count,
