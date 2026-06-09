@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text, Integer
 from database import get_db
 from models import PointsDb, SurveyResponse, PointsResponse, SurveyMeta, SupplierBreakdownItem
 from helpers import PM_NAMES, SUPPLIER_NAMES, correct_excel_datetime
@@ -35,20 +35,16 @@ def get_surveys(
         func.max(SurveyMeta.client).label("client"),
         func.max(SurveyMeta.description).label("askia_description"),
         func.coalesce(
-        func.max(func.nullif(PointsDb.target, 2000)),
-        2000
+            func.cast(
+                text("SUBSTRING_INDEX(GROUP_CONCAT(points.target ORDER BY points.stime DESC), ',', 1)"),
+                Integer,
+            ),
+            2000,
         ).label("target"),
         func.coalesce(
-            func.max(
-                func.IF(
-                    PointsDb.surveytype.notin_(["Nat Rep/Gen-Pop"]),
-                    PointsDb.surveytype,
-                    None
-                    )
-                ),
-            func.max(PointsDb.surveytype),
-            "Nat Rep/Gen-Pop"
-            ).label("surveytype"),
+            text("SUBSTRING_INDEX(GROUP_CONCAT(points.surveytype ORDER BY points.stime DESC), ',', 1)"),
+            "Nat Rep/Gen-Pop",
+        ).label("surveytype"),
         func.max(SurveyMeta.last_ir).label("ir"),
         func.GROUP_CONCAT(func.DISTINCT(PointsDb.supplier)).label("supplier_ids"),
     ).outerjoin(
