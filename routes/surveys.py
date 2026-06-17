@@ -2,11 +2,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text, Integer
 from database import get_db
-from models import PointsDb, SurveyResponse, PointsResponse, SurveyMeta, SupplierBreakdownItem
+from models import PointsDb, SurveyResponse, PointsResponse, SurveyMeta, SupplierBreakdownItem, ReconcileHistory
 from helpers import PM_NAMES, SUPPLIER_NAMES, correct_excel_datetime
 from typing import Optional
 from datetime import datetime, timedelta
-from collections import defaultdict
 
 router = APIRouter(prefix="/api/surveys", tags=["Surveys"])
 
@@ -60,33 +59,13 @@ def get_surveys(
 
     results = query.group_by(PointsDb.project, PointsDb.pm).all()
 
-    breakdown_q = (
-        db.query(
-            PointsDb.project,
-            PointsDb.supplier,
-            func.count().label("completes"),
-            func.sum(fulcrum_spend_expr()).label("spend"),
-        ).filter(PointsDb.status == 1)
-    )
-    if month_start:
-        breakdown_q = breakdown_q.filter(
-            PointsDb.stime >= datetime.fromisoformat(month_start) + timedelta(days=2)
-        )
-    if month_end:
-        breakdown_q = breakdown_q.filter(
-            PointsDb.stime < datetime.fromisoformat(month_end) + timedelta(days=2)
-        )
-
-    breakdown_map: dict[str, list] = defaultdict(list)
-    for br in breakdown_q.group_by(PointsDb.project, PointsDb.supplier).all():
-        breakdown_map[br.project].append(
-            SupplierBreakdownItem(
-                supplier=SUPPLIER_NAMES.get(br.supplier, f"Supplier {br.supplier}"),
-                completes=br.completes,
-                spend=round(br.spend or 0, 2),
-            )
-        )
-
+    
+    reconcile_map: dict[str, str | None] = {}
+    for rh in db.query(
+        ReconcileHistory.surveyid,
+        func.max(ReconcileHistory.reconciled_at).label("latest"),
+    ).group_by(ReconcileHistory.surveyid).all():
+        reconcile_map[rh.surveyid] = rh.latest.isoformat() if rh.latest else None
     surveys = []
     for r in results:
         supplier_ids = [int(s) for s in (r.supplier_ids or "").split(",") if s]
@@ -103,7 +82,7 @@ def get_surveys(
             target=r.target,
             ir=r.ir,
             suppliers=supplier_names,
-            supplier_breakdown=breakdown_map.get(r.surveyName, []),
+            last_reconciled=reconcile_map.get(r.surveyName),
         ))
     return surveys
 
@@ -129,6 +108,27 @@ def get_survey_points(surveyName: str, db: Session = Depends(get_db)):
             supplier=SUPPLIER_NAMES.get(r.supplier, f"Unknown Supplier {r.supplier}"),
             stime=r.stime,
             suppname=None,
+        )
+        for r in results
+    ]
+
+@router.get("/{surveyName}/breakdown", response_model=list[SupplierBreakdownItem])
+def get_survey_breakdown(surveyName: str, db: Session = Depends(get_db)):
+    results = (
+        db.query(
+            PointsDb.supplier,
+            func.count().label("completes"),
+            func.sum(fulcrum_spend_expr()).label("spend"),
+        )
+        .filter(PointsDb.project == surveyName, PointsDb.status == 1)
+        .group_by(PointsDb.supplier)
+        .all()
+    )
+    return [
+        SupplierBreakdownItem(
+            supplier=SUPPLIER_NAMES.get(r.supplier, f"Supplier {r.supplier}"),
+            completes=r.completes,
+            spend=round(r.spend or 0, 2),
         )
         for r in results
     ]

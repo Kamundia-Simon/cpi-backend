@@ -73,7 +73,8 @@ class SurveyResponse(BaseModel):
     target:            int | None = None
     ir:                float | None = None
     suppliers:         list[str] = []
-    supplier_breakdown: list[SupplierBreakdownItem] = [] 
+    supplier_breakdown: list[SupplierBreakdownItem] = []
+    last_reconciled: str | None = None 
    
 # GET /api/surveys/{surveyName}/points
 class PointsResponse(BaseModel):
@@ -109,6 +110,7 @@ class ReconcileResponse(BaseModel):
     total_in_db: int
     total_usable: int
     total_marked_unusable: int
+    total_restored: int = 0
     pids_not_found: list[str]
     
 class ReconcileHistoryResponse(BaseModel):
@@ -119,3 +121,14 @@ class ReconcileHistoryResponse(BaseModel):
     usable: int
     unusable: int
     not_found: int
+    
+class PMReconcileSurveyResult(BaseModel):
+    survey: str
+    excluded: int
+
+class PMReconcileResponse(BaseModel):
+    surveys_affected: list[PMReconcileSurveyResult]
+    total_excluded: int
+    total_restored: int = 0
+    already_excluded: int = 0
+    pids_not_found: list[str]

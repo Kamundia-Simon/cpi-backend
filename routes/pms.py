@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from database import get_db
-from sqlalchemy import func
-from models import PMSummaryResponse, PMResponse, SurveyResponse, PointsDb, SurveyMeta
+from sqlalchemy import func, text, Integer
+from models import PMSummaryResponse, PMResponse, SurveyResponse, PointsDb, SurveyMeta, ReconcileHistory
 from helpers import PM_NAMES, correct_excel_datetime
 from typing import Optional
 from datetime import datetime, timedelta
@@ -34,6 +34,13 @@ def get_pm_surveys(
             func.min(PointsDb.stime).label("startDate"),
             func.max(SurveyMeta.client).label("client"),
             func.max(SurveyMeta.description).label("askia_description"),
+            func.coalesce(
+                func.cast(
+                    text("SUBSTRING_INDEX(GROUP_CONCAT(points.target ORDER BY points.stime DESC), ',', 1)"),
+                    Integer,
+                ),
+                2000,
+            ).label("target"),
         )
         .outerjoin(SurveyMeta, PointsDb.surveyid == SurveyMeta.surveyid)
         .filter(PointsDb.pm == pmId, PointsDb.status == 1)
@@ -47,6 +54,12 @@ def get_pm_surveys(
         query = query.filter(PointsDb.stime < adjusted_end)
 
     results = query.group_by(PointsDb.project, PointsDb.pm).all()
+    reconcile_map: dict[str, str | None] = {}
+    for rh in db.query(
+        ReconcileHistory.surveyid,
+        func.max(ReconcileHistory.reconciled_at).label("latest"),
+    ).group_by(ReconcileHistory.surveyid).all():
+        reconcile_map[rh.surveyid] = rh.latest.isoformat() if rh.latest else None
 
     surveys = []
 
@@ -55,21 +68,20 @@ def get_pm_surveys(
             SurveyResponse(
                 surveyName=row.surveyName,
                 pm=PM_NAMES.get(row.pmId, f"Unknown PM {row.pmId}"),
-                totalPaid=float(row.totalPaid),
+                totalPaid=float(row.totalPaid or 0),
                 totalCompletes=row.totalCompletes,
                 startDate=correct_excel_datetime(row.startDate).strftime("%d %b %Y %H:%M"),
                 client=row.client,
                 askia_description=row.askia_description,
+                target=row.target,
+                last_reconciled=reconcile_map.get(row.surveyName),
             )
         )
 
     return surveys
 
 @router.get("/{pmId}/summary", response_model=PMSummaryResponse)
-def get_pm_summary(
-    pmId: int,
-    db: Session = Depends(get_db)
-):
+def get_pm_summary(pmId: int, db: Session = Depends(get_db)):
     total_amount = (
         db.query(func.sum(fulcrum_spend_expr()))
         .filter(PointsDb.pm == pmId, PointsDb.status == 1)
@@ -89,7 +101,7 @@ def get_pm_summary(
 
     return PMSummaryResponse(
         totalAmount=total_amount,
-        avgPerProject=avg_per_project,
+        avgPerProject=total_amount / total_projects if total_projects > 0 else 0.0,
         totalProjects=total_projects,
     )
 
