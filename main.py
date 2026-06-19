@@ -11,6 +11,8 @@ from routes.reconcile import router as reconcile_router
 from fastapi.responses import JSONResponse
 from routes.meta import router as meta_router
 import logging
+from routes.costing import router as costing_router
+from dependencies import get_costing_user
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -23,7 +25,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -35,6 +37,7 @@ app.include_router(dashboard_router, **protected)
 app.include_router(analytics_router, **protected)
 app.include_router(reconcile_router, **protected)
 app.include_router(meta_router, **protected)
+app.include_router(costing_router, dependencies=[Depends(get_costing_user)])
 
 @app.get("/")
 def get_root():
