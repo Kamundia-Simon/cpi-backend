@@ -10,7 +10,12 @@ DB_URL = os.getenv("DB_URL")
 connect_args = {}
 if DB_URL and "sqlite" in DB_URL:
     connect_args["check_same_thread"] = False
-engine = create_engine(DB_URL, connect_args=connect_args)
+engine = create_engine(
+    DB_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

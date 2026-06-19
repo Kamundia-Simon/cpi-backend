@@ -24,7 +24,10 @@ def authenticate(request):
         )
         if not request_state.is_signed_in:
             raise HTTPException(status_code=401, detail="Unauthorised")
-        return {"user_id": request_state.payload.get("sub")}
+        return {
+            "user_id": request_state.payload.get("sub"),
+            "email": (request_state.payload.get("email") or "").lower().strip(),
+        }
     except HTTPException:
         raise
     except Exception:
