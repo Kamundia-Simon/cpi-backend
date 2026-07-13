@@ -41,6 +41,7 @@ def get_pm_surveys(
                 ),
                 2000,
             ).label("target"),
+            func.GROUP_CONCAT(func.DISTINCT(PointsDb.supplier)).label("supplier_ids"),
         )
         .outerjoin(SurveyMeta, PointsDb.surveyid == SurveyMeta.surveyid)
         .filter(PointsDb.pm == pmId, PointsDb.status == 1)
@@ -64,6 +65,9 @@ def get_pm_surveys(
     surveys = []
 
     for row in results:
+        supplier_ids = [int(s) for s in (row.supplier_ids or "").split(",") if s]
+        has_pl1 = FULCRUM_ID in supplier_ids
+        reconciled_at = reconcile_map.get(row.surveyName)
         surveys.append(
             SurveyResponse(
                 surveyName=row.surveyName,
@@ -74,7 +78,7 @@ def get_pm_surveys(
                 client=row.client,
                 askia_description=row.askia_description,
                 target=row.target,
-                last_reconciled=reconcile_map.get(row.surveyName),
+                last_reconciled=reconciled_at if reconciled_at else (None if has_pl1 else "auto"),
             )
         )
 

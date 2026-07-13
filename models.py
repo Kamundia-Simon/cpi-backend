@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, Numeric, Text
+from sqlalchemy import Column, Integer, String, DateTime, Float, Numeric, Text, LargeBinary
 from database import Base
 from datetime import datetime
 from pydantic import BaseModel, field_validator
@@ -37,6 +37,10 @@ class ReconcileHistory(Base):
     usable = Column(Integer, nullable=False)
     unusable = Column(Integer, nullable=False, default=0)
     not_found = Column(Integer, nullable=False, default=0)
+    batch_id = Column(String(36), nullable=True, index=True)
+    screenshot = Column(LargeBinary, nullable=True)
+    screenshot_mime = Column(String(50), nullable=True)
+    
     
 class ProjectCosts(Base):
     __tablename__ = "project_costs"
@@ -125,6 +129,7 @@ class ReconcileResponse(BaseModel):
     total_marked_unusable: int
     total_restored: int = 0
     pids_not_found: list[str]
+    batch_id: str
     
 class ReconcileHistoryResponse(BaseModel):
     id: int
@@ -134,6 +139,8 @@ class ReconcileHistoryResponse(BaseModel):
     usable: int
     unusable: int
     not_found: int
+    batch_id: str | None
+    has_screenshot: bool = False
     
 class PMReconcileSurveyResult(BaseModel):
     survey: str
@@ -145,6 +152,7 @@ class PMReconcileResponse(BaseModel):
     total_restored: int = 0
     already_excluded: int = 0
     pids_not_found: list[str]
+    batch_id: str
     
 
 class ProjectCostUpsert(BaseModel):
@@ -190,3 +198,9 @@ class TrendPoint(BaseModel):
     revenue: float
     outgoings: float
     net: float
+    
+class ReconcileBatchResponse(BaseModel):
+    batch_id: str
+    reconciled_at: str
+    surveys: list[str]
+    has_screenshot: bool

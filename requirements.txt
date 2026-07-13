@@ -1,4 +1,4 @@
-﻿annotated-doc==0.0.4
+annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.13.0
 certifi==2026.2.25
@@ -32,3 +32,4 @@ typing_extensions==4.15.0
 tzdata==2026.2
 uvicorn==0.42.0
 python-multipart==0.0.32
+Pillow==11.1.0
