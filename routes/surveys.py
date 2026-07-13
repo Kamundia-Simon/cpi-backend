@@ -70,6 +70,8 @@ def get_surveys(
     for r in results:
         supplier_ids = [int(s) for s in (r.supplier_ids or "").split(",") if s]
         supplier_names = [SUPPLIER_NAMES.get(sid, f"Supplier {sid}") for sid in supplier_ids]
+        has_pl1 = FULCRUM_ID in supplier_ids
+        reconciled_at = reconcile_map.get(r.surveyName)
         surveys.append(SurveyResponse(
             surveyName=r.surveyName,
             pm=PM_NAMES.get(r.pmId, f"Unknown PM {r.pmId}"),
@@ -82,7 +84,7 @@ def get_surveys(
             target=r.target,
             ir=r.ir,
             suppliers=supplier_names,
-            last_reconciled=reconcile_map.get(r.surveyName),
+            last_reconciled=reconciled_at if reconciled_at else (None if has_pl1 else "auto"),
         ))
     return surveys
 
