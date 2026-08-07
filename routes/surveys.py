@@ -3,13 +3,15 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, text, Integer
 from database import get_db
 from models import PointsDb, SurveyResponse, PointsResponse, SurveyMeta, SupplierBreakdownItem, ReconcileHistory
-from helpers import PM_NAMES, SUPPLIER_NAMES, correct_excel_datetime
+from helpers import PM_NAMES, SUPPLIER_NAMES, RECONCILABLE_SUPPLIERS, correct_excel_datetime
 from typing import Optional
 from datetime import datetime, timedelta
+from collections import defaultdict
 
 router = APIRouter(prefix="/api/surveys", tags=["Surveys"])
 
 FULCRUM_ID = 23
+RECONCILABLE_SUPPLIER_IDS = set(RECONCILABLE_SUPPLIERS)
 
 def fulcrum_spend_expr():
     return func.IF(
@@ -60,22 +62,38 @@ def get_surveys(
     results = query.group_by(PointsDb.project, PointsDb.pm).all()
 
     
-    reconcile_map: dict[str, str | None] = {}
+    reconcile_map: dict[str, dict[int, str]] = defaultdict(dict)
     for rh in db.query(
         ReconcileHistory.surveyid,
+        ReconcileHistory.supplier,
         func.max(ReconcileHistory.reconciled_at).label("latest"),
-    ).group_by(ReconcileHistory.surveyid).all():
-        reconcile_map[rh.surveyid] = rh.latest.isoformat() if rh.latest else None
+    ).group_by(ReconcileHistory.surveyid, ReconcileHistory.supplier).all():
+        reconcile_map[rh.surveyid][rh.supplier] = rh.latest.isoformat() if rh.latest else None
     surveys = []
     for r in results:
         supplier_ids = [int(s) for s in (r.supplier_ids or "").split(",") if s]
         supplier_names = [SUPPLIER_NAMES.get(sid, f"Supplier {sid}") for sid in supplier_ids]
-        has_pl1 = FULCRUM_ID in supplier_ids
-        reconciled_at = reconcile_map.get(r.surveyName)
+        present_reconcilable = [sid for sid in RECONCILABLE_SUPPLIER_IDS if sid in supplier_ids]
+        per_supplier = reconcile_map.get(r.surveyName, {})
+
+        last_reconciled = None
+        reconcile_note = None
+        if not present_reconcilable:
+            last_reconciled = "auto"
+        else:
+            done = [sid for sid in present_reconcilable if sid in per_supplier]
+            if len(done) == len(present_reconcilable):
+                last_reconciled = max(per_supplier[sid] for sid in present_reconcilable)
+            elif done:
+                reconcile_note = " / ".join(
+                    f"{SUPPLIER_NAMES.get(sid, sid)} {'✓' if sid in per_supplier else 'pending'}"
+                    for sid in present_reconcilable
+                )
+
         surveys.append(SurveyResponse(
             surveyName=r.surveyName,
             pm=PM_NAMES.get(r.pmId, f"Unknown PM {r.pmId}"),
-            totalPaid=round(r.totalPaid or 0, 2),
+            totalPaid=r.totalPaid or 0,
             totalCompletes=r.totalCompletes,
             startDate=correct_excel_datetime(r.startDate).strftime("%d %b %Y %H:%M"),
             client=r.client,
@@ -84,7 +102,8 @@ def get_surveys(
             target=r.target,
             ir=r.ir,
             suppliers=supplier_names,
-            last_reconciled=reconciled_at if reconciled_at else (None if has_pl1 else "auto"),
+            last_reconciled=last_reconciled,
+            reconcile_note=reconcile_note,
         ))
     return surveys
 
@@ -130,7 +149,7 @@ def get_survey_breakdown(surveyName: str, db: Session = Depends(get_db)):
         SupplierBreakdownItem(
             supplier=SUPPLIER_NAMES.get(r.supplier, f"Supplier {r.supplier}"),
             completes=r.completes,
-            spend=round(r.spend or 0, 2),
+            spend=r.spend or 0,
         )
         for r in results
     ]

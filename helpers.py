@@ -30,4 +30,12 @@ SUPPLIER_NAMES = {
     17: "DataSpring",
     24: "Borderless",
     5: "LO",
+    27: "PL3",
+}
+
+# Suppliers whose completes are reconciled against an external panel's own report.
+# Key = supplier id, value = the panel/platform the PM reconciles on.
+RECONCILABLE_SUPPLIERS = {
+    23: "Cint",   # PL1
+    27: "Walr",   # PL3
 }

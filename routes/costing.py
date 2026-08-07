@@ -87,14 +87,14 @@ def _to_row(pc: ProjectCosts, sample: float, reconciled: bool) -> ProjectCostRow
     margin = (net / revenue * 100) if revenue else None
     return ProjectCostRow(
         survey_name=pc.survey_name,
-        revenue_gbp=round(revenue, 2),
-        sample_cost_gbp=round(sample, 2),
-        translations_gbp=round(translations, 2),
-        researcher_cost_gbp=round(researcher, 2),
-        additional_outgoing_gbp=round(additional, 2),
-        total_outgoings_gbp=round(outgoings, 2),
-        net_gbp=round(net, 2),
-        margin_pct=round(margin, 2) if margin is not None else None,
+        revenue_gbp=revenue,
+        sample_cost_gbp=sample,
+        translations_gbp=translations,
+        researcher_cost_gbp=researcher,
+        additional_outgoing_gbp=additional,
+        total_outgoings_gbp=outgoings,
+        net_gbp=net,
+        margin_pct=margin,
         notes=pc.notes,
         uploaded_by=pc.uploaded_by,
         uploaded_at=pc.uploaded_at.isoformat() if pc.uploaded_at else None,
@@ -471,14 +471,12 @@ def get_trend(
         y, m = mo.split("-")
         label_date = date(int(y), int(m), 1)
         label = label_date.strftime("%b %y")
-        rev = round(revenue_buckets[mo], 2)
-        out = round(outgoings_buckets[mo], 2)
         result.append(TrendPoint(
-            month=mo,
-            label=label,
-            revenue=rev,
-            outgoings=out,
-            net=round(rev - out, 2),
-        ))
+    month=mo,
+    label=label,
+    revenue=revenue_buckets[mo],
+    outgoings=outgoings_buckets[mo],
+    net=revenue_buckets[mo] - outgoings_buckets[mo],
+))
 
     return result
