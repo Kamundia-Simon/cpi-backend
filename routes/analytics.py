@@ -54,7 +54,7 @@ def get_supplier_spend(
         result.append(SupplierSpendRow(
             month=label,
             supplier=SUPPLIER_NAMES.get(r.supplier, f"Supplier {r.supplier}"),
-            spend=round(float(r.spend or 0), 2),
+            spend=float(r.spend or 0),
             completes=r.completes,
         ))
     return result

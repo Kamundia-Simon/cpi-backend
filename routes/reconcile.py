@@ -1,16 +1,72 @@
 import io
+import os
 import uuid
+from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response
 from PIL import Image
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import get_db
 from models import PointsDb, ReconcileBatchResponse, ReconcileResponse, ReconcilePayload, ReconcileHistory, ReconcileHistoryResponse,PMReconcileResponse, PMReconcileSurveyResult
+from helpers import SUPPLIER_NAMES, RECONCILABLE_SUPPLIERS
+from dependencies import get_current_user
 from datetime import datetime
 from collections import defaultdict
 
+load_dotenv()
+
 router = APIRouter()
-CINT_SUPPLIER_ID = 23
+RECONCILABLE_SUPPLIER_IDS = set(RECONCILABLE_SUPPLIERS)
+
+
+def _pm_email_map() -> dict[str, int]:
+    out: dict[str, int] = {}
+    for part in os.getenv("PM_EMAILS", "").split(","):
+        part = part.strip()
+        if ":" not in part:
+            continue
+        email, pm = part.rsplit(":", 1)
+        try:
+            out[email.strip().lower()] = int(pm.strip())
+        except ValueError:
+            continue
+    return out
+
+
+def _reconcile_admin_emails() -> set[str]:
+    raw = os.getenv("RECONCILE_ADMIN_EMAILS", "")
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
+def _present_reconcilable(db: Session, base_filters: list) -> list[int]:
+    return sorted(
+        r[0] for r in db.query(PointsDb.supplier)
+        .filter(*base_filters, PointsDb.supplier.in_(RECONCILABLE_SUPPLIER_IDS))
+        .distinct()
+        .all()
+    )
+
+
+def _resolve_supplier(db: Session, base_filters: list, requested: int | None) -> int:
+    present = _present_reconcilable(db, base_filters)
+    if requested is not None:
+        if requested not in RECONCILABLE_SUPPLIER_IDS:
+            raise HTTPException(status_code=400, detail="Unsupported supplier for reconciliation")
+        if requested not in present:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No {SUPPLIER_NAMES.get(requested, requested)} rows found",
+            )
+        return requested
+    if not present:
+        raise HTTPException(status_code=404, detail="No reconcilable rows found")
+    if len(present) > 1:
+        names = ", ".join(SUPPLIER_NAMES.get(s, str(s)) for s in present)
+        raise HTTPException(
+            status_code=400,
+            detail=f"This has both {names} — specify which supplier you are reconciling",
+        )
+    return present[0]
 
 @router.post("/api/surveys/{surveyName}/reconcile", response_model=ReconcileResponse)
 def reconcile_survey(
@@ -21,21 +77,20 @@ def reconcile_survey(
     if not payload.pids:
         raise HTTPException(status_code=400, detail="No PIDs provided")
 
-    # Only Cint (supplier 23) rows for this survey
+    supplier_id = _resolve_supplier(db, [PointsDb.project == surveyName], payload.supplier_id)
+
+    # Only this supplier's rows for this survey
     all_cint = db.query(PointsDb).filter(
         PointsDb.project == surveyName,
-        PointsDb.supplier == CINT_SUPPLIER_ID,
+        PointsDb.supplier == supplier_id,
     ).all()
 
-    if not all_cint:
-        raise HTTPException(status_code=404, detail="No Cint rows found for this survey")
-
-    usable_set = set(payload.pids)           # uploaded list = valid Cint PIDs
+    usable_set = set(payload.pids)           # uploaded list = valid PIDs for this supplier
     cint_pids_in_db = {p.pid for p in all_cint}
     active_cint_pids = {p.pid for p in all_cint if p.status == 1}
     excluded_cint_pids = {p.pid for p in all_cint if p.status == 2}
 
-    to_invalidate = active_cint_pids - usable_set          # active Cint PIDs missing from valid list
+    to_invalidate = active_cint_pids - usable_set          # active PIDs missing from valid list
     to_restore = excluded_cint_pids & usable_set           # previously excluded but now confirmed valid
     pids_not_in_db = list(usable_set - cint_pids_in_db)   # valid PIDs not in our DB
 
@@ -43,14 +98,14 @@ def reconcile_survey(
         if to_invalidate:
             db.query(PointsDb).filter(
                 PointsDb.project == surveyName,
-                PointsDb.supplier == CINT_SUPPLIER_ID,
+                PointsDb.supplier == supplier_id,
                 PointsDb.pid.in_(to_invalidate),
                 PointsDb.status == 1,
             ).update({"status": 2}, synchronize_session=False)
         if to_restore:
             db.query(PointsDb).filter(
                 PointsDb.project == surveyName,
-                PointsDb.supplier == CINT_SUPPLIER_ID,
+                PointsDb.supplier == supplier_id,
                 PointsDb.pid.in_(to_restore),
                 PointsDb.status == 2,
             ).update({"status": 1}, synchronize_session=False)
@@ -75,6 +130,7 @@ def reconcile_survey(
         unusable=total_unusable,
         not_found=len(pids_not_in_db),
         batch_id=batch_id,
+        supplier=supplier_id,
     ))
     db.commit()
 
@@ -86,8 +142,59 @@ def reconcile_survey(
         total_restored=len(to_restore),
         pids_not_found=pids_not_in_db,
         batch_id=batch_id,
+        supplier=supplier_id,
     )
-    
+
+
+@router.get("/api/reconcile/permission")
+def get_reconcile_permission(
+    pm_id: int | None = None,
+    survey: str | None = None,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """Whether the signed-in user owns the PM/survey being viewed.
+
+    UX gate only — the reconcile endpoints themselves are not restricted.
+    """
+    email = (user.get("email") or "").lower()
+    if email in _reconcile_admin_emails():
+        return {"can_reconcile": True, "reason": "admin"}
+
+    owned_pm = _pm_email_map().get(email)
+    if owned_pm is None:
+        return {"can_reconcile": False, "reason": "unmapped"}
+
+    target_pm = pm_id
+    if target_pm is None and survey:
+        row = db.query(PointsDb.pm).filter(PointsDb.project == survey).first()
+        if not row:
+            return {"can_reconcile": False, "reason": "unknown_survey"}
+        target_pm = row[0]
+
+    if target_pm is None:
+        return {"can_reconcile": False, "reason": "no_target"}
+    if owned_pm == target_pm:
+        return {"can_reconcile": True, "reason": "owner"}
+    return {"can_reconcile": False, "reason": "not_owner"}
+
+
+@router.get("/api/surveys/{surveyName}/reconcile/suppliers")
+def get_survey_reconcile_suppliers(surveyName: str, db: Session = Depends(get_db)):
+    return [
+        {"id": sid, "label": SUPPLIER_NAMES.get(sid, str(sid)), "panel": RECONCILABLE_SUPPLIERS[sid]}
+        for sid in _present_reconcilable(db, [PointsDb.project == surveyName])
+    ]
+
+
+@router.get("/api/pms/{pmId}/reconcile/suppliers")
+def get_pm_reconcile_suppliers(pmId: int, db: Session = Depends(get_db)):
+    return [
+        {"id": sid, "label": SUPPLIER_NAMES.get(sid, str(sid)), "panel": RECONCILABLE_SUPPLIERS[sid]}
+        for sid in _present_reconcilable(db, [PointsDb.pm == pmId])
+    ]
+
+
 @router.get("/api/surveys/{surveyName}/reconcile/history", response_model=list[ReconcileHistoryResponse])
 def get_reconcile_history(surveyName: str, db: Session = Depends(get_db)):
     entries = (
@@ -107,6 +214,7 @@ def get_reconcile_history(surveyName: str, db: Session = Depends(get_db)):
             not_found=e.not_found,
             batch_id=e.batch_id,
             has_screenshot=e.screenshot is not None,
+            supplier=e.supplier,
         )
         for e in entries
     ]
@@ -116,22 +224,21 @@ def reconcile_pm(pmId: int, payload: ReconcilePayload, db: Session = Depends(get
     if not payload.pids:
         raise HTTPException(status_code=400, detail="No PIDs provided")
 
-    usable_set = set(payload.pids)   # uploaded list = valid Cint PIDs
+    supplier_id = _resolve_supplier(db, [PointsDb.pm == pmId], payload.supplier_id)
 
-    # All Cint (supplier 23) rows for this PM
+    usable_set = set(payload.pids)   # uploaded list = valid PIDs for this supplier
+
+    # All rows for this PM from the supplier being reconciled
     all_cint = (
         db.query(PointsDb.pid, PointsDb.project, PointsDb.status)
-        .filter(PointsDb.pm == pmId, PointsDb.supplier == CINT_SUPPLIER_ID)
+        .filter(PointsDb.pm == pmId, PointsDb.supplier == supplier_id)
         .all()
     )
-
-    if not all_cint:
-        raise HTTPException(status_code=404, detail="No Cint rows found for this PM")
 
     # Identify which surveys this file covers — only surveys with at least one PID in the uploaded list
     covered_surveys = {r.project for r in all_cint if r.pid in usable_set}
     if not covered_surveys:
-        raise HTTPException(status_code=404, detail="No matching Cint PIDs found for this PM")
+        raise HTTPException(status_code=404, detail="No matching PIDs found for this PM")
 
     # Restrict all operations to only those covered surveys
     relevant_cint = [r for r in all_cint if r.project in covered_surveys]
@@ -154,7 +261,7 @@ def reconcile_pm(pmId: int, payload: ReconcilePayload, db: Session = Depends(get
         if to_invalidate:
             db.query(PointsDb).filter(
                 PointsDb.pm == pmId,
-                PointsDb.supplier == CINT_SUPPLIER_ID,
+                PointsDb.supplier == supplier_id,
                 PointsDb.project.in_(covered_surveys),
                 PointsDb.pid.in_(to_invalidate),
                 PointsDb.status == 1,
@@ -162,7 +269,7 @@ def reconcile_pm(pmId: int, payload: ReconcilePayload, db: Session = Depends(get
         if to_restore:
             db.query(PointsDb).filter(
                 PointsDb.pm == pmId,
-                PointsDb.supplier == CINT_SUPPLIER_ID,
+                PointsDb.supplier == supplier_id,
                 PointsDb.project.in_(covered_surveys),
                 PointsDb.pid.in_(to_restore),
                 PointsDb.status == 2,
@@ -188,6 +295,7 @@ def reconcile_pm(pmId: int, payload: ReconcilePayload, db: Session = Depends(get
             unusable=total_unusable,
             not_found=len(pids_not_in_db),
             batch_id=batch_id,
+            supplier=supplier_id,
         ))
         results.append(PMReconcileSurveyResult(survey=project_name, excluded=len(pids_in_project)))
 
@@ -263,6 +371,7 @@ def get_pm_reconcile_history(pmId: int, db: Session = Depends(get_db)):
                 reconciled_at=e.reconciled_at.isoformat(),
                 surveys=[],
                 has_screenshot=e.screenshot is not None,
+                supplier=e.supplier,
             )
         batches[e.batch_id].surveys.append(e.surveyid)
     return list(batches.values())

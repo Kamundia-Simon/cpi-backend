@@ -37,6 +37,7 @@ class ReconcileHistory(Base):
     usable = Column(Integer, nullable=False)
     unusable = Column(Integer, nullable=False, default=0)
     not_found = Column(Integer, nullable=False, default=0)
+    supplier = Column(Integer, nullable=False)
     batch_id = Column(String(36), nullable=True, index=True)
     screenshot = Column(LargeBinary, nullable=True)
     screenshot_mime = Column(String(50), nullable=True)
@@ -91,8 +92,9 @@ class SurveyResponse(BaseModel):
     ir:                float | None = None
     suppliers:         list[str] = []
     supplier_breakdown: list[SupplierBreakdownItem] = []
-    last_reconciled: str | None = None 
-   
+    last_reconciled: str | None = None
+    reconcile_note: str | None = None
+
 # GET /api/surveys/{surveyName}/points
 class PointsResponse(BaseModel):
     id: int
@@ -120,6 +122,7 @@ class SupplierSpendRow(BaseModel):
 # POST /api/surveys/{surveyName}/reconcile — request body
 class ReconcilePayload(BaseModel):
     pids: list[str]
+    supplier_id: int | None = None
 
 # POST /api/surveys/{surveyName}/reconcile
 class ReconcileResponse(BaseModel):
@@ -130,7 +133,8 @@ class ReconcileResponse(BaseModel):
     total_restored: int = 0
     pids_not_found: list[str]
     batch_id: str
-    
+    supplier: int
+
 class ReconcileHistoryResponse(BaseModel):
     id: int
     surveyid: str
@@ -141,7 +145,8 @@ class ReconcileHistoryResponse(BaseModel):
     not_found: int
     batch_id: str | None
     has_screenshot: bool = False
-    
+    supplier: int
+
 class PMReconcileSurveyResult(BaseModel):
     survey: str
     excluded: int
@@ -204,3 +209,4 @@ class ReconcileBatchResponse(BaseModel):
     reconciled_at: str
     surveys: list[str]
     has_screenshot: bool
+    supplier: int
