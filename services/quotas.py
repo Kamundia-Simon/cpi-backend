@@ -1,17 +1,27 @@
+
 import os
 import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
 
-ASKIA_BASE_URL = os.getenv("ASKIA_BASE_URL")
-ASKIA_TOKEN = os.getenv("ASKIA_TOKEN")
-HEADERS = {"Authorization": f"Bearer {ASKIA_TOKEN}"}
+ASKIA_CREDENTIALS = {
+    1: (os.getenv("ASKIA_BASE_URL_1"), os.getenv("ASKIA_TOKEN_1")),
+    2: (os.getenv("ASKIA_BASE_URL_2"), os.getenv("ASKIA_TOKEN_2")),
+}
+
+def _base_url(server: int) -> str:
+    return ASKIA_CREDENTIALS.get(server, ASKIA_CREDENTIALS[1])[0]
 
 
-def fetch_all_surveys() -> list[dict]:
+def _headers(server: int) -> dict:
+    token = ASKIA_CREDENTIALS.get(server, ASKIA_CREDENTIALS[1])[1]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def fetch_all_surveys(server: int = 1) -> list[dict]:
     """GET /SurveyTasks/ — returns [{Id, Name, Description}, ...]"""
-    r = httpx.get(f"{ASKIA_BASE_URL}/SurveyTasks/", headers=HEADERS, timeout=15)
+    r = httpx.get(f"{_base_url(server)}/SurveyTasks/", headers=_headers(server), timeout=15)
     r.raise_for_status()
     data = r.json()
     if isinstance(data, dict) and "Response" in data:
@@ -19,11 +29,11 @@ def fetch_all_surveys() -> list[dict]:
     return data if isinstance(data, list) else []
 
 
-def fetch_finalstatus(askia_id: int) -> dict | None:
+def fetch_finalstatus(askia_id: int, server: int = 1) -> dict | None:
     """GET /SurveyTasks/{askia_id}/Quota — returns the FinalStatus question or None."""
     r = httpx.get(
-        f"{ASKIA_BASE_URL}/SurveyTasks/{askia_id}/Quota",
-        headers=HEADERS,
+        f"{_base_url(server)}/SurveyTasks/{askia_id}/Quota",
+        headers=_headers(server),
         timeout=15,
     )
     if r.status_code == 404:
