@@ -24,7 +24,7 @@ SUPPLIER_NAMES = {
     16: "Cint",
     25: "PL2",
     23: "PL1",
-    15: "Nebu",
+    15: "LO",
     13: "Dynata",
     30: "Toluna",
     17: "DataSpring",

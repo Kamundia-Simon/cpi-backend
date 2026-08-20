@@ -13,6 +13,7 @@ from routes.meta import router as meta_router
 import logging
 from routes.costing import router as costing_router
 from dependencies import get_costing_user
+from routes.external import router as external_router
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ app.include_router(analytics_router, **protected)
 app.include_router(reconcile_router, **protected)
 app.include_router(meta_router, **protected)
 app.include_router(costing_router, dependencies=[Depends(get_costing_user)])
+app.include_router(external_router)
 
 @app.get("/")
 def get_root():
