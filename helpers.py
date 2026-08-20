@@ -29,7 +29,7 @@ SUPPLIER_NAMES = {
     30: "Toluna",
     17: "DataSpring",
     24: "Borderless",
-    5: "ClientSample",
+    5: "LO",
     27: "PL3",
 }
 
