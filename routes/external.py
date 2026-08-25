@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text, Integer
 from database import get_db
 from models import PointsDb
 from dependencies import verify_api_key
+from rate_limit import limiter
 
 router = APIRouter(prefix="/api/external", tags=["External"], dependencies=[Depends(verify_api_key)])
 
 @router.get("/surveys/{surveyName}/progress")
-def get_survey_progress(surveyName: str, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def get_survey_progress(request: Request, surveyName: str, db: Session = Depends(get_db)):
     result = (
         db.query(
             func.count().label("completes"),
