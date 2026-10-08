@@ -85,6 +85,9 @@ def _run_meta_sync() -> dict:
             desc = askia_info.get("Description", "")
 
             survey_server = found_server or id_to_server.get(numeric_id, 1)
+            fs = None
+            ir_value = None
+            fs_error = None
             # Askia only lists active surveys. A survey it doesn't list returns
             # nothing from the per-survey Quota lookup either, so skip the call.
             if matched_askia:
