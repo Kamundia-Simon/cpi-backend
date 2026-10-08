@@ -55,7 +55,7 @@ def _run_meta_sync() -> dict:
         id_to_name: dict[int, str] = {row.surveyid: row.project for row in survey_rows}
         id_to_server: dict[int, int] = {row.surveyid: row.server for row in survey_rows}
 
-        askia_by_name: dict[str, dict] = {}
+        askia_by_name: dict[str, list[tuple[int, dict]]] = {}
         askia_error_parts: list[str] = []
         askia_count = 0
         for server_id in (1, 2):
@@ -65,7 +65,7 @@ def _run_meta_sync() -> dict:
                 for s in surveys_list:
                     name = (s.get("Name") or "").strip()
                     if name:
-                        askia_by_name[name] = s
+                        askia_by_name.setdefault(name, []).append((server_id, s))
             except Exception as e:
                 askia_error_parts.append(f"server {server_id}: {e}")
                 logger.warning("meta sync: fetch_all_surveys(server=%s) failed: %s", server_id, e)
@@ -74,15 +74,17 @@ def _run_meta_sync() -> dict:
         debug_per_survey = []
         skipped_unlisted = 0
         for numeric_id, project_name in id_to_name.items():
-            askia_info = askia_by_name.get(project_name, {})
+            candidates = askia_by_name.get(project_name, [])
+
+            found_server, askia_info = next(
+                ((srv, s) for srv, s in candidates if s.get("Id") == numeric_id),
+                candidates[0] if candidates else (None, {}),
+            )
             matched_askia = bool(askia_info)
             askia_api_id = askia_info.get("Id")
             desc = askia_info.get("Description", "")
 
-            survey_server = id_to_server.get(numeric_id, 1)
-            fs = None
-            ir_value = None
-            fs_error = None
+            survey_server = found_server or id_to_server.get(numeric_id, 1)
             # Askia only lists active surveys. A survey it doesn't list returns
             # nothing from the per-survey Quota lookup either, so skip the call.
             if matched_askia:
@@ -118,6 +120,7 @@ def _run_meta_sync() -> dict:
                 "project": project_name,
                 "points_surveyid": numeric_id,
                 "server": survey_server,
+                "points_server": id_to_server.get(numeric_id),
                 "matched_askia_name": matched_askia,
                 "askia_api_id": askia_api_id,
                 "ids_match": numeric_id == askia_api_id if askia_api_id else None,
@@ -193,7 +196,7 @@ def refresh_ir(surveyid: int, db: Session = Depends(get_db)):
     if not meta:
         raise HTTPException(status_code=404, detail="Survey not in meta table")
 
-    survey_server = db.query(
+        tagged_server = db.query(
         func.coalesce(
             func.cast(
                 text("SUBSTRING_INDEX(GROUP_CONCAT(points.server ORDER BY points.stime DESC), ',', 1)"),
@@ -203,7 +206,11 @@ def refresh_ir(surveyid: int, db: Session = Depends(get_db)):
         )
     ).filter(PointsDb.surveyid == surveyid).scalar() or 1
 
-    finalstatus = fetch_finalstatus(surveyid, server=survey_server)
+    finalstatus = None
+    for server in (tagged_server, 2 if tagged_server == 1 else 1):
+        finalstatus = fetch_finalstatus(surveyid, server=server)
+        if finalstatus is not None:
+            break
     if finalstatus is None:
         return {"ir": meta.last_ir, "source": "cached"}
 
