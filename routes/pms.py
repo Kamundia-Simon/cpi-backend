@@ -43,6 +43,11 @@ def get_pm_surveys(
                 ),
                 2000,
             ).label("target"),
+            func.coalesce(
+                text("SUBSTRING_INDEX(GROUP_CONCAT(points.surveytype ORDER BY points.stime DESC), ',', 1)"),
+                "Nat Rep/Gen-Pop",
+            ).label("surveytype"),
+            func.max(SurveyMeta.last_ir).label("ir"),
             func.GROUP_CONCAT(func.DISTINCT(PointsDb.supplier)).label("supplier_ids"),
         )
         .outerjoin(SurveyMeta, PointsDb.surveyid == SurveyMeta.surveyid)
@@ -69,6 +74,7 @@ def get_pm_surveys(
 
     for row in results:
         supplier_ids = [int(s) for s in (row.supplier_ids or "").split(",") if s]
+        supplier_names = [SUPPLIER_NAMES.get(sid, f"Supplier {sid}") for sid in supplier_ids]
         present_reconcilable = [sid for sid in RECONCILABLE_SUPPLIER_IDS if sid in supplier_ids]
         per_supplier = reconcile_map.get(row.surveyName, {})
 
@@ -95,7 +101,10 @@ def get_pm_surveys(
                 startDate=correct_excel_datetime(row.startDate).strftime("%d %b %Y %H:%M"),
                 client=row.client,
                 askia_description=row.askia_description,
+                surveytype=row.surveytype,
                 target=row.target,
+                ir=row.ir,
+                suppliers=supplier_names,
                 last_reconciled=last_reconciled,
                 reconcile_note=reconcile_note,
             )
