@@ -21,3 +21,5 @@ def get_costing_user(request: Request):
 
 def verify_api_key(x_api_key: str = Header(None)):
     expect = os.getenv("PROGRESS_API_KEY")
+    if not expect or x_api_key != expect:
+        raise HTTPException(status_code=401, detail="Invalid API key")

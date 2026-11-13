@@ -14,6 +14,10 @@ import logging
 from routes.costing import router as costing_router
 from dependencies import get_costing_user
 from routes.external import router as external_router
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from rate_limit import limiter
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -21,6 +25,10 @@ logger = logging.getLogger(__name__)
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
 app = FastAPI(title="CPI DASHBOARD")
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
